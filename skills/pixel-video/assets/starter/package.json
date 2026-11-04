@@ -1,0 +1,8 @@
+{
+  "name": "pixel-video-project",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"dev":"node tools/server.mjs","check":"node tools/check.mjs","stills":"node tools/render.mjs --stills","render":"node tools/render.mjs"},
+  "devDependencies": {"playwright":"1.64.1"}
+}

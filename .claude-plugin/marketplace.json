@@ -1,0 +1,5 @@
+{
+  "name": "pixel-video-local",
+  "owner": {"name": "Pixel Video"},
+  "plugins": [{"name": "pixel-video", "source": "./", "description": "Audio to pixel-art video workflow."}]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "pixel-video-local",
+  "interface": {"displayName": "Pixel Video"},
+  "plugins": [{
+    "name": "pixel-video",
+    "source": {"source": "local", "path": "./"},
+    "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+    "category": "Productivity"
+  }]
+}

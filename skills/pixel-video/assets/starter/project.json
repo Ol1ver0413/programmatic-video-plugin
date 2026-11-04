@@ -1,0 +1,18 @@
+{
+  "title": "Pixel Video",
+  "duration": 8,
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "logicalWidth": 320,
+  "logicalHeight": 180,
+  "audio": "assets/audio/demo.wav",
+  "captions": "captions.json",
+  "font": "assets/fonts/fusion-pixel-12px.woff2",
+  "assets": {},
+  "scenes": [
+    {"id":"run","start":0,"end":2.6666666666666665,"intent":"Approach the closed gate"},
+    {"id":"gate","start":2.6666666666666665,"end":5.333333333333333,"intent":"Wind up, strike, open a path"},
+    {"id":"jump","start":5.333333333333333,"end":8,"intent":"Prepare, jump, land"}
+  ]
+}
