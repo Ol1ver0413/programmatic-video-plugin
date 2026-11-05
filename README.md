@@ -1,24 +1,30 @@
 # Pixel Video
 
-**给 UP 主制作像素风视频素材和短片的创作插件。**
+[![X: @YZLin151776](https://img.shields.io/badge/X-%40YZLin151776-000000?style=flat&logo=x&logoColor=white)](https://x.com/YZLin151776) [![Douyin: 47421190572](https://img.shields.io/badge/Douyin-47421190572-FE2C55?style=flat&logo=tiktok&logoColor=white)](https://www.douyin.com/search/47421190572?type=user)
 
-和 agent 边聊想法、边看素材，确定场景与画风，再写故事脚本、分镜和计划，逐步做成可继续剪辑的视频。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-适合音乐画面、口播配图、角色动作、背景和过场。支持有声或无声工程；图片生成、素材检索和语音转写使用宿主已有能力。
+**A creative plugin for making pixel-art video clips and short films with Claude Code or Codex.**
 
-## 怎么工作
+Explore ideas and references with your agent, plan the story and scenes, then build, preview and refine an editable video project.
 
-**脑暴与收集参考 → 写脚本和计划 → 制作与修改 → 验收和沉淀**
+Use it for music visuals, voice-over backgrounds, character actions and transitions. Projects support audio or silence; image generation, research and transcription use tools available in your host.
 
-每条视频都有自己的项目目录，保存需求、计划、素材、工程、成片和制作记录。下次可以接着改，也能参考用户明确认可的偏好。
+**This project is in early development.** We're testing and refining the workflow through real video projects. Try it out, share feedback, or help improve the skills and tools. Issues and pull requests are welcome.
 
-插件面向 **Claude Code / Codex**，包含一个入口 skill、四个创作阶段、启动 hook，以及本地 `pixel-video` CLI。
+## How it works
 
-## 开始使用
+**Brainstorm with references → Write the story and plan → Produce and revise → Review, deliver and remember**
 
-准备 Node.js 20+、FFmpeg（含 ffprobe）和 Chrome / Edge 或 Playwright Chromium。
+Each video gets its own folder for the brief, plan, assets, editable scenes, exports and production notes. Save style references and confirmed preferences for future work.
 
-[下载源码 ZIP](https://github.com/Ol1ver0413/pixel-video-plugin/archive/refs/heads/main.zip)，或克隆后从本地安装命令：
+The plugin includes an entry skill, four creative stages, a session-start hook and a local `pixel-video` CLI.
+
+## Get started
+
+Install Node.js 20+, FFmpeg with ffprobe, and Chrome, Edge or Playwright Chromium.
+
+[Download the source ZIP](https://github.com/Ol1ver0413/pixel-video-plugin/archive/refs/heads/main.zip), or clone the repository and install the local CLI:
 
 ```sh
 git clone https://github.com/Ol1ver0413/pixel-video-plugin.git
@@ -27,16 +33,14 @@ npm install --global .
 pixel-video --help
 ```
 
-这是安装当前源码目录里的 CLI，**暂不向 npm 发布包**。
+This installs the CLI from your local checkout. **The package is not published to npm.**
 
-加载插件后，使用 `using-pixel-video`，告诉 agent 想做什么，也可以带上现有素材：
+Load the plugin in your host, then start with `using-pixel-video` and describe what you want to make. Bring your own media or explore references together:
 
-> 我想做一段雨夜便利店的像素画面，给口播当背景。我们先看看参考，聊聊场景。
+> Create a rainy-night convenience store scene as a background for my narration. Let's look at references and discuss the setting first.
 
-[安装与使用说明](docs/getting-started.md) · [CLI 与工程约定](skills/using-pixel-video/references/toolkit.md)
+[Setup guide (中文)](docs/getting-started.md) · [CLI and project conventions (中文)](skills/using-pixel-video/references/toolkit.md)
 
-当前是早期版本，依靠 agent 编排和检查作品；已验证本地工具与导出，双宿主完整创作体验仍在逐步验证。
+## License
 
-## 交流
-
-抖音号：**47421190572**
+Project code is licensed under [MIT](LICENSE). Bundled fonts retain their [original licenses](skills/using-pixel-video/assets/starter/assets/fonts/LICENSE.txt).

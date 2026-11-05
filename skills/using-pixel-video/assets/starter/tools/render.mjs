@@ -1,13 +1,14 @@
 import {chromium} from 'playwright';
 import path from 'node:path';
 import {existsSync} from 'node:fs';
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,writeFile,rename,rm} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {startServer,root} from './server.mjs';
 import {checkAndWrite,run,probe,localFile} from './project.mjs';
 
-let browser,server,encoder;
+let browser,server,encoder,encoderClosed,temporaryVideo,temporaryReport;
 try{
   const {project}=await checkAndWrite(root),out=path.join(root,'output');
   const started=await startServer();server=started.server;
@@ -29,10 +30,12 @@ try{
   await writeFile(path.join(out,'stills.json'),JSON.stringify(stills,null,2));
   if(!process.argv.includes('--stills')){
     const destination=path.join(out,'video.mp4'),frames=Math.ceil(project.duration*project.fps-1e-9);
+    temporaryVideo=path.join(out,`.video-${randomUUID()}.tmp.mp4`);
     const hasAudio=project.audio!==null&&project.audio!==undefined;
     const audioInput=hasAudio?['-i',localFile(root,project.audio)]:[];
     const audioOutput=hasAudio?['-map','1:a:0','-c:a','aac','-b:a','192k']:['-an'];
-    encoder=spawn('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','image2pipe','-framerate',String(project.fps),'-c:v','png','-i','pipe:0',...audioInput,'-map','0:v:0','-c:v','libx264','-preset','medium','-crf','19','-pix_fmt','yuv420p',...audioOutput,'-t',String(project.duration),'-movflags','+faststart',destination],{stdio:['pipe','ignore','pipe'],windowsHide:true});
+    encoder=spawn('ffmpeg',['-hide_banner','-loglevel','error','-f','image2pipe','-framerate',String(project.fps),'-c:v','png','-i','pipe:0',...audioInput,'-map','0:v:0','-c:v','libx264','-preset','medium','-crf','19','-pix_fmt','yuv420p',...audioOutput,'-t',String(project.duration),'-movflags','+faststart',temporaryVideo],{stdio:['pipe','ignore','pipe'],windowsHide:true});
+    encoderClosed=new Promise(resolve=>encoder.once('close',resolve));
     let stderr='';encoder.stderr.on('data',chunk=>stderr+=chunk.toString());encoder.stdin.on('error',()=>{});
     const completion=new Promise((resolve,reject)=>{encoder.once('error',reject);encoder.once('close',code=>code===0?resolve():reject(new Error(stderr||`FFmpeg exited ${code}`)))});
     completion.catch(()=>{});
@@ -44,11 +47,26 @@ try{
     }
     encoder.stdin.end();await completion;
     if(errors.length)throw new Error(errors.join('\n'));
-    const info=probe(destination),video=info.streams.find(s=>s.codec_type==='video'),audio=info.streams.find(s=>s.codec_type==='audio');
+    const info=probe(temporaryVideo),video=info.streams.find(s=>s.codec_type==='video'),audio=info.streams.find(s=>s.codec_type==='audio');
     if(!video||Boolean(audio)!==hasAudio||video.width!==project.width||video.height!==project.height||Number(video.nb_frames)!==frames||Math.abs(Number(info.format.duration)-project.duration)>1/project.fps+.025)throw new Error('Exported media does not match the project');
-    run('ffmpeg',['-hide_banner','-v','error','-i',destination,'-f','null','-']);
-    await writeFile(path.join(out,'render-report.json'),JSON.stringify({duration_seconds:Number(info.format.duration),width:video.width,height:video.height,fps:video.r_frame_rate,frames,has_audio:hasAudio,full_decode:'passed',browser_errors:errors},null,2));
+    run('ffmpeg',['-hide_banner','-v','error','-i',temporaryVideo,'-f','null','-']);
+    const report=path.join(out,'render-report.json');
+    temporaryReport=path.join(out,`.render-report-${randomUUID()}.tmp`);
+    await writeFile(temporaryReport,JSON.stringify({duration_seconds:Number(info.format.duration),width:video.width,height:video.height,fps:video.r_frame_rate,frames,has_audio:hasAudio,full_decode:'passed',browser_errors:errors},null,2),{flag:'wx'});
+    if(errors.length)throw new Error(errors.join('\n'));
+    // Until publication, the previous video and its report still describe one delivery.
+    // Invalidate that report before replacing the video so publication errors cannot mislabel it.
+    await rm(report,{force:true});
+    await rename(temporaryVideo,destination);temporaryVideo=undefined;
+    await rename(temporaryReport,report);temporaryReport=undefined;
     console.log(`DONE ${destination}`);
   }else{if(errors.length)throw new Error(errors.join('\n'));console.log(`Saved ${stills.length} stills`)}
 }catch(error){console.error(error.message);process.exitCode=1}
-finally{if(encoder&&encoder.exitCode===null)encoder.kill();if(browser)await browser.close();if(server)await new Promise(resolve=>server.close(resolve));}
+finally{
+  if(encoder&&encoder.exitCode===null)encoder.kill();
+  if(encoderClosed)await encoderClosed;
+  if(temporaryVideo)await rm(temporaryVideo,{force:true});
+  if(temporaryReport)await rm(temporaryReport,{force:true});
+  if(browser)await browser.close();
+  if(server)await new Promise(resolve=>server.close(resolve));
+}

@@ -4,15 +4,16 @@ import {clamp} from './drawing.js';
 const canvas=document.querySelector('#film'),screen=canvas.getContext('2d',{alpha:false});
 const audio=document.querySelector('audio'),play=document.querySelector('#play'),scrub=document.querySelector('#scrub'),status=document.querySelector('#status');
 const renderMode=new URLSearchParams(location.search).has('render');
+const resourceUrl=file=>file.split(/[\\/]/).map(encodeURIComponent).join('/');
 try{
   const project=await fetch('project.json').then(r=>r.json());
-  const captions=project.captions?await fetch(project.captions).then(r=>r.json()):[];
+  const captions=project.captions?await fetch(resourceUrl(project.captions)).then(r=>r.json()):[];
   const hasAudio=Boolean(project.audio);
   canvas.width=project.width;canvas.height=project.height;scrub.max=project.duration;
-  if(hasAudio)audio.src=project.audio;
+  if(hasAudio)audio.src=resourceUrl(project.audio);
   document.querySelector('#title').textContent=project.title;
-  if(project.font){const font=new FontFace('Pixel',`url(${project.font})`);document.fonts.add(await font.load());await document.fonts.ready;}
-  const assets=Object.fromEntries(await Promise.all(Object.entries(project.assets||{}).map(async([key,url])=>[key,await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error(`Cannot load ${url}`));im.src=url})])));
+  if(project.font){const font=new FontFace('Pixel',`url("${resourceUrl(project.font)}")`);document.fonts.add(await font.load());await document.fonts.ready;}
+  const assets=Object.fromEntries(await Promise.all(Object.entries(project.assets||{}).map(async([key,url])=>[key,await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error(`Cannot load ${url}`));im.src=resourceUrl(url)})])));
   const world=document.createElement('canvas');world.width=project.logicalWidth;world.height=project.logicalHeight;
   const ctx=world.getContext('2d',{alpha:false}),w=world.width,h=world.height,band=Math.round(h*.14);
   function wrap(text,max){

@@ -36,7 +36,7 @@ test('CLI creates a silent named project without audio and preserves an existing
   const retry = invoke('init', '--out', f.project);
   assert.notEqual(retry.status, 0); assert.match(retry.stderr, /overwrite/);
   assert.equal(await readFile(path.join(f.project, 'brief.md'), 'utf8'), '用户已认可的便利店方向');
-  assert.equal(invoke('--version').stdout.trim(), '0.2.1');
+  assert.equal(invoke('--version').stdout.trim(), (await json(new URL('../package.json', import.meta.url))).version);
 });
 
 test('CLI entry works through the directory link created by a local npm install', async t => {
@@ -66,6 +66,24 @@ test('preview CLI serves the selected project on an available port and exits cle
   assert.equal(response.status, 200); assert.equal((await response.json()).title, '雨夜便利店');
   assert.equal((await fetch(`${url}/index.html`)).status, 200);
   assert.equal(stderr, '');
+});
+
+test('render CLI lets the project renderer validate once and forwards stills mode', async t => {
+  const f=await fixture(t);
+  await writeFile(path.join(f.project,'tools/render.mjs'),`
+    import assert from 'node:assert/strict';
+    import {stat} from 'node:fs/promises';
+    import {fileURLToPath} from 'node:url';
+    import {checkAndWrite} from './project.mjs';
+    // A CLI preflight would already have written this report before delegation.
+    await assert.rejects(stat(new URL('../output/check.json',import.meta.url)),{code:'ENOENT'});
+    assert.ok(process.argv.includes('--stills'));
+    await checkAndWrite(fileURLToPath(new URL('../',import.meta.url)));
+    console.log('project renderer validated');
+  `);
+  const result=invoke('render','--project',f.project,'--stills');
+  assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/project renderer validated/);
+  assert.equal((await json(path.join(f.project,'output/check.json'))).ok,true);
 });
 
 test('read-only context and checkpoints restore authored decisions without creating memory', async t => {
@@ -114,6 +132,8 @@ test('long-term preferences require evidence and a completed source project, and
   await writeFile(path.join(f.project, 'delivery.txt'), 'actual project delivery');
   await finish(f.project, {summary:'完成', style:'安静雨夜、简洁字幕', deliverables:['delivery.txt']}, f.memory);
   await remember({...preference, confirmed:true});
+  await remember({...preference, confirmed:true});
+  assert.equal((await readMemory(f.memory)).memory.history.length, 1);
   const saved = await context(f.project, f.memory);
   assert.equal(saved.memory.preferences[0].value, '简洁字幕');
   assert.equal(saved.memory.preferences[0].sourceProject, '雨夜便利店');
@@ -142,6 +162,50 @@ test('malformed memory is reported and never silently overwritten', async t => {
   await mkdir(f.memory); await writeFile(path.join(f.memory, 'preferences.json'), '{broken');
   await assert.rejects(remember({directory:f.memory, key:'style', value:'pixel', evidence:'明确表达', confirmed:true}), SyntaxError);
   assert.equal(await readFile(path.join(f.memory, 'preferences.json'), 'utf8'), '{broken');
+});
+
+test('existing falsy memory records are rejected and preserved by reads, remember and finish', async t => {
+  const f=await fixture(t), file=path.join(f.memory,'preferences.json');
+  await mkdir(f.memory);
+  await writeFile(path.join(f.project,'delivery.txt'),'delivery fixture');
+  for(const contents of ['null','false','0','""']) {
+    await writeFile(file,contents);
+    await assert.rejects(readMemory(f.memory), /Unsupported memory record/);
+    assert.notEqual(invoke('memory','--memory-dir',f.memory).status,0);
+    await assert.rejects(remember({directory:f.memory,key:'style',value:'pixel',evidence:'explicit',confirmed:true}), /Unsupported memory record/);
+    await assert.rejects(finish(f.project,{summary:'done',style:'pixel',deliverables:['delivery.txt']},f.memory), /Unsupported memory record/);
+    assert.equal(await readFile(file,'utf8'),contents);
+    assert.equal((await json(path.join(f.project,'workflow.json'))).status,'in_progress');
+  }
+});
+
+test('BOM project and workflow records can resume, checkpoint and finish', async t => {
+  const f=await fixture(t);
+  for(const name of ['project.json','workflow.json']) {
+    const file=path.join(f.project,name);await writeFile(file,'\uFEFF'+await readFile(file,'utf8'));
+  }
+  assert.equal((await context(f.project,f.memory)).workflow.status,'in_progress');
+  await checkpoint(f.project,'producing-video','BOM project restored');
+  await writeFile(path.join(f.project,'delivery.txt'),'delivery fixture');
+  assert.equal((await finish(f.project,{summary:'done',style:'pixel',deliverables:['delivery.txt']},f.memory)).status,'completed');
+});
+
+test('an unchanged preference still requires a completed source project', async t => {
+  const f=await fixture(t), preference={directory:f.memory,key:'style',value:'pixel',evidence:'explicit',confirmed:true};
+  await remember(preference);
+  await assert.rejects(remember({...preference,project:f.project}), /Finish/);
+  assert.equal((await readMemory(f.memory)).memory.history.length,1);
+});
+
+test('demo init checks FFmpeg before copying and can retry the same target', async t => {
+  const f=await fixture(t), target=path.join(f.parent,'demo'), emptyPath=path.join(f.parent,'empty-path');
+  await mkdir(emptyPath);
+  const result=spawnSync(process.execPath,[cli,'init','--out',target,'--demo'],{encoding:'utf8',windowsHide:true,env:{...process.env,PATH:emptyPath}});
+  assert.notEqual(result.status,0);assert.match(result.stderr,/ffmpeg/i);
+  await assert.rejects(stat(target),{code:'ENOENT'});
+  if(spawnSync('ffmpeg',['-version'],{windowsHide:true}).status===0) {
+    const retry=invoke('init','--out',target,'--demo');assert.equal(retry.status,0,retry.stderr);
+  }
 });
 
 test('finish rejects deliverables that link outside the project', async t => {

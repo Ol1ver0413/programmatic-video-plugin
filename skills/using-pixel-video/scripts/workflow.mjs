@@ -2,8 +2,9 @@ import path from 'node:path';
 import os from 'node:os';
 import {readFile, writeFile, mkdir, rename, appendFile, realpath, stat, lstat, rm} from 'node:fs/promises';
 import {randomUUID, createHash} from 'node:crypto';
-import {localFile} from '../assets/starter/tools/project.mjs';
+import {localFile, parseJson} from '../assets/starter/tools/project.mjs';
 import {videoFinished} from '../../../hooks/video-finished.mjs';
+import {upsertPreference} from './preferences.mjs';
 
 export const stages = ['brainstorming', 'writing-plans', 'producing-video', 'finishing-video'];
 const stamp = () => new Date().toISOString();
@@ -15,8 +16,7 @@ async function optional(file) {
   try {return await readFile(file, 'utf8');} catch(error) {if(error.code === 'ENOENT') return null; throw error;}
 }
 async function readJson(file) {
-  const value = await optional(file);
-  return value === null ? null : JSON.parse(value.replace(/^\uFEFF/, ''));
+  return parseJson(await readFile(file, 'utf8'));
 }
 export async function saveJson(file, value) {
   // A failed write cannot truncate the previous record.
@@ -29,7 +29,7 @@ export async function saveJson(file, value) {
 async function projectRoot(directory) {
   const root = await realpath(directory);
   const contents = await projectDocument(root, 'project.json');
-  if(contents === null || !JSON.parse(contents)) throw new Error('Not a video project: project.json is missing');
+  if(contents === null || !parseJson(contents)) throw new Error('Not a video project: project.json is missing');
   return root;
 }
 async function projectDocument(root, name) {
@@ -40,8 +40,8 @@ async function projectDocument(root, name) {
   return readFile(actual, 'utf8');
 }
 async function workflow(root) {
-  await projectDocument(root, 'workflow.json');
-  const record = await readJson(path.join(root, 'workflow.json'));
+  const contents = await projectDocument(root, 'workflow.json');
+  const record = contents === null ? null : parseJson(contents);
   if(record && (record.schemaVersion !== 1 || !stages.includes(record.stage) || !['in_progress', 'completed'].includes(record.status))) throw new Error('Unsupported workflow record');
   return record;
 }
@@ -74,8 +74,9 @@ export function memoryDirectory(directory) {
 }
 export async function readMemory(directory) {
   const root = memoryDirectory(directory), file = path.join(root, 'preferences.json');
-  const memory = await readJson(file) || {schemaVersion:1, preferences:[], history:[]};
-  if(memory.schemaVersion !== 1 || !Array.isArray(memory.preferences) || !Array.isArray(memory.history)) throw new Error('Unsupported memory record');
+  const contents = await optional(file);
+  const memory = contents === null ? {schemaVersion:1, preferences:[], history:[]} : parseJson(contents);
+  if(!memory || memory.schemaVersion !== 1 || !Array.isArray(memory.preferences) || !Array.isArray(memory.history)) throw new Error('Unsupported memory record');
   memory.videos ??= [];
   if(!Array.isArray(memory.videos)) throw new Error('Unsupported video memory record');
   for(const item of memory.preferences) {
@@ -156,8 +157,6 @@ export async function remember({directory, key, value, evidence, confirmed, proj
   if(!confirmed) throw new Error('Use --confirmed only for a preference the user explicitly expressed or approved');
   key = text(key, 'key'); value = text(value, 'value'); evidence = text(evidence, 'evidence');
   const {file, memory} = await readMemory(directory);
-  const previous = memory.preferences.find(item => item.key === key);
-  if(previous?.value === value && previous?.evidence === evidence) return {file, preference:previous};
   let sourceProject = null;
   if(project) {
     const root = await projectRoot(project), record = await workflow(root);
@@ -165,9 +164,9 @@ export async function remember({directory, key, value, evidence, confirmed, proj
     sourceProject = record.title;
   }
   const preference = {key, value, evidence, sourceProject, updatedAt:stamp()};
-  memory.preferences = memory.preferences.filter(item => item.key !== key).concat(preference);
-  memory.history.push({...preference, previousValue:previous?.value || null});
+  const next = upsertPreference(memory, preference);
+  if(next === memory) return {file, preference:memory.preferences.find(item => item.key === key)};
   await mkdir(path.dirname(file), {recursive:true});
-  await saveJson(file, memory);
+  await saveJson(file, next);
   return {file, preference};
 }

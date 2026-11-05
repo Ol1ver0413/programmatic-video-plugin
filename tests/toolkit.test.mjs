@@ -42,3 +42,12 @@ test('project validation rejects aspect distortion and unreadable empty captions
   await writeFile(path.join(f.root,'captions.json'),'[{"start":0,"end":1,"text":""}]');
   assert.ok((await validateProject(f.root,{probeAudio:false})).errors.some(e=>e.includes('missing text')));
 });
+
+test('project and caption JSON accept a leading UTF-8 BOM',async t=>{
+  const f=await fixture(t);
+  await writeFile(path.join(f.root,'project.json'),'\uFEFF'+JSON.stringify(f.project));
+  assert.deepEqual((await validateProject(f.root,{probeAudio:false})).errors,[]);
+  await writeFile(path.join(f.root,'captions.json'),'\uFEFF[{"start":0,"end":3,"text":"BOM caption"}]');
+  const result=await validateProject(f.root,{probeAudio:false});
+  assert.deepEqual(result.errors,[]);assert.equal(result.cues[0].text,'BOM caption');
+});

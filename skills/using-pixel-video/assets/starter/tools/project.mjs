@@ -2,6 +2,7 @@ import path from 'node:path';
 import {readFile, realpath, stat, writeFile, mkdir} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 
+export function parseJson(text){return JSON.parse(text.replace(/^\uFEFF/,''))}
 export function run(command,args){
   const r=spawnSync(command,args,{encoding:'utf8',windowsHide:true,maxBuffer:8*1024*1024});
   if(r.error)throw new Error(`${command}: ${r.error.message}`);
@@ -30,7 +31,7 @@ export function toSrt(cues){
   return cues.map((cue,i)=>`${i+1}\n${stamp(cue.start)} --> ${stamp(cue.end)}\n${cue.text}\n`).join('\n');
 }
 export async function validateProject(directory,{probeAudio=true}={}){
-  const root=await realpath(directory),project=JSON.parse(await readFile(path.join(root,'project.json'),'utf8'));
+  const root=await realpath(directory),project=parseJson(await readFile(path.join(root,'project.json'),'utf8'));
   const errors=[],warnings=[];
   if(!Number.isFinite(project.duration)||project.duration<=0)errors.push('duration must be positive');
   if(project.burnCaptions!==undefined&&typeof project.burnCaptions!=='boolean')errors.push('burnCaptions must be a boolean');
@@ -55,7 +56,7 @@ export async function validateProject(directory,{probeAudio=true}={}){
     if(rel==='..'||rel.startsWith('..'+path.sep)||path.isAbsolute(rel)||!(await stat(file)).isFile())throw new Error('not an in-project file');
   }catch(e){errors.push(`Resource ${relative}: ${e.message}`)}}
   let cues=[];
-  if(hasCaptions)try{cues=JSON.parse(await readFile(localFile(root,project.captions),'utf8'));errors.push(...checkCues(cues,project.duration));}
+  if(hasCaptions)try{cues=parseJson(await readFile(localFile(root,project.captions),'utf8'));errors.push(...checkCues(cues,project.duration));}
   catch(e){errors.push(`Captions: ${e.message}`)}
   if(probeAudio&&hasAudio&&!errors.length){try{
     const info=probe(localFile(root,project.audio));

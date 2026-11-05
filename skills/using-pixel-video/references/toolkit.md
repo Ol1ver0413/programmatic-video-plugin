@@ -48,7 +48,7 @@ pixel-video captions --input "/path/song.srt" --offset 38.88 --duration 45 --out
 
 `project.json` 全部使用片内秒数，`scenes` 连续覆盖全片。输出宽高为逻辑画布的统一整数倍；配置比例不等于已完成构图适配，竖屏与方形要在场景中重新构图。
 
-音轨可设为 `null`；字幕可设为 `null` 或空数组。仅在字幕有效时绘制字幕栏。`burnCaptions: false` 导出干净画面，但仍生成独立 SRT。没有音频时预览使用独立播放时钟，导出不生成空音轨。
+`project.json` 的 `audio` 可设为 `null`；无字幕时将 `captions` 设为 `null`，或让它指向内容为 `[]` 的字幕 JSON 文件。仅在字幕有效时绘制字幕栏。`burnCaptions: false` 导出干净画面，但仍生成独立 SRT。没有音频时预览使用独立播放时钟，导出不生成空音轨。
 
 `assets` 是名称到工程内相对文件的映射。`drawScene({ctx,scene,time,local,progress,width,height,assets})` 在低分辨率 Canvas 上绘制；不要通过音频播放状态驱动画面。随机效果用固定种子。
 

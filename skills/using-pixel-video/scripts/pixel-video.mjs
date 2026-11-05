@@ -6,11 +6,11 @@ import {existsSync} from 'node:fs';
 import {cp, mkdir, readFile, writeFile, copyFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
-import {run,probe,checkCues,checkAndWrite} from '../assets/starter/tools/project.mjs';
+import {run,probe,checkCues,checkAndWrite,parseJson} from '../assets/starter/tools/project.mjs';
 import {initWorkflow,context,checkpoint,finish,remember,readMemory} from './workflow.mjs';
 
 const skillDir=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const json=file=>readFile(file,'utf8').then(value=>JSON.parse(value.replace(/^\uFEFF/,'')));
+const json=file=>readFile(file,'utf8').then(parseJson);
 const save=(file,data)=>writeFile(file,JSON.stringify(data,null,2)+'\n');
 const number=(value,name)=>{const n=Number(value);if(value===undefined||!Number.isFinite(n))throw new Error(`${name} must be a number`);return n};
 function newFile(file){if(existsSync(file))throw new Error(`Will not overwrite ${file}`)}
@@ -18,7 +18,7 @@ function audioDuration(file){const info=probe(file);if(!info.streams.some(s=>s.c
 
 export function parseCaptions(text,format){
   let cues;
-  if(format==='.json')cues=JSON.parse(text.replace(/^\uFEFF/,''));
+  if(format==='.json')cues=parseJson(text);
   else if(format==='.srt'){
     const time=s=>{const match=/^(\d+):(\d{2}):(\d{2})[,.](\d{3})$/.exec(s.trim());if(!match||Number(match[2])>59||Number(match[3])>59)throw new Error(`Invalid SRT timestamp: ${s}`);return Number(match[1])*3600+Number(match[2])*60+Number(match[3])+Number(match[4])/1000};
     cues=text.replace(/^\uFEFF/,'').trim().split(/\r?\n\s*\r?\n/).filter(Boolean).map(block=>{
@@ -42,6 +42,7 @@ async function init(values){
   const source=values.audio?path.resolve(values.audio):null;
   const duration=source?audioDuration(source):values.demo?8:number(values.duration??'8','duration');
   if(duration<=0)throw new Error('duration must be positive');
+  if(values.demo)run('ffmpeg',['-version']);
   await mkdir(path.dirname(target),{recursive:true});await cp(path.join(skillDir,'assets/starter'),target,{recursive:true});
   const audioName=source?'clip'+path.extname(source).toLowerCase():'demo.wav';
   const audioFile=path.join(target,'assets/audio',audioName);
@@ -75,7 +76,7 @@ async function cutAudio(v){
 export async function main(argv=process.argv.slice(2)){
   const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:Object.fromEntries(['out','audio','input','project','start','duration','offset','title','memory-dir','stage','note','key','value','evidence','port'].map(x=>[x,{type:'string'}]).concat(['demo','help','confirmed','stills','version'].map(x=>[x,{type:'boolean'}])))});
   const command=positionals[0];
-  if(values.version){console.log('0.2.1');return}
+  if(values.version){console.log((await json(path.join(skillDir,'../../package.json'))).version);return}
   if(values.help||!command){console.log(`pixel-video — pixel video projects, media tools and personal memory
 
   init --out DIR [--title TEXT] [--audio FILE | --demo | --duration SECONDS]
@@ -121,11 +122,11 @@ The CLI stores records; the agent authors the story, animation, review and prefe
       if(!values.input)throw new Error('finish requires --input REVIEW.json');
       console.log(JSON.stringify(await finish(root,await json(path.resolve(values.input)),values['memory-dir']),null,2));
     }else{
-      await checkAndWrite(root);
       const args=command==='render'&&values.stills?['--stills']:[];
       let port;
       if(values.port!==undefined){port=number(values.port,'port');if(!Number.isInteger(port)||port<0||port>65535)throw new Error('port must be an integer from 0 to 65535')}
       if(command==='preview'){
+        await checkAndWrite(root);
         const {startServer}=await import(pathToFileURL(path.join(root,'tools/server.mjs')).href);
         const {server,url}=await startServer(port??4173);
         console.log(url);

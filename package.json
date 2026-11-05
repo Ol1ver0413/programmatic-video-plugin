@@ -2,10 +2,11 @@
   "name": "pixel-video-plugin",
   "version": "0.2.1",
   "private": true,
+  "license": "MIT",
   "description": "Pixel video creation skills and a local project CLI for creators.",
   "type": "module",
   "bin": {"pixel-video": "scripts/pixel-video.mjs"},
   "engines": {"node": ">=20"},
-  "files": ["scripts/", "skills/", "hooks/", ".claude-plugin/", ".codex-plugin/", "plugin.json", "README.md", "docs/getting-started.md"],
-  "scripts": {"test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs"}
+  "files": ["scripts/", "skills/", "hooks/", ".claude-plugin/", ".codex-plugin/", "plugin.json", "LICENSE", "README.md", "README.zh-CN.md", "docs/getting-started.md"],
+  "scripts": {"test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs"}
 }

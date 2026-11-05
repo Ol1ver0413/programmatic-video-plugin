@@ -21,7 +21,8 @@ try{
   await page.waitForFunction(()=>!document.querySelector('audio').paused&&document.querySelector('audio').currentTime>.1,undefined,{timeout:10000});
   await page.click('#play');assert.equal(await page.evaluate(()=>document.querySelector('audio').paused),true);
   await page.locator('#scrub').evaluate(el=>{el.value='4';el.dispatchEvent(new Event('input',{bubbles:true}))});
-  const frame=await page.evaluate(()=>window.__render(4));assert.equal(frame.scene,'gate');assert.equal(frame.caption,'Open a new way');
+  await page.waitForFunction(()=>Math.abs(document.querySelector('audio').currentTime-4)<.01&&Math.abs(window.__playback.time-4)<.01);
+  const frame=await page.evaluate(()=>window.__render(window.__playback.time));assert.equal(frame.scene,'gate');assert.equal(frame.caption,'Open a new way');
   const samples=await page.evaluate(()=>{
     const draw=t=>{window.__render(t);return document.querySelector('#film').toDataURL()};
     const first=draw(4);draw(1);const repeat=draw(4),different=draw(4.5);
