@@ -34,6 +34,6 @@ export async function startServer(port=0){
   return {server,url:`http://127.0.0.1:${server.address().port}`};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-  const {server,url}=await startServer(Number(process.env.PORT||4173));console.log(url);
+  const {server,url}=await startServer(Number(process.env.PORT??4173));console.log(url);
   process.on('SIGINT',()=>server.close(()=>process.exit()));
 }

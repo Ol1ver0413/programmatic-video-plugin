@@ -1,7 +1,8 @@
 {
   "name": "pixel-video",
-  "version": "0.1.0",
-  "description": "Create pixel-art videos from audio with timed captions and authored scene animation.",
+  "version": "0.2.1",
+  "description": "Pixel video creation with staged skills, editable projects and personal preferences.",
   "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "requires_local_executor": true
 }

@@ -1,5 +1,6 @@
 {
   "name": "pixel-video-local",
+  "description": "Local marketplace for the Pixel Video creator plugin.",
   "owner": {"name": "Pixel Video"},
-  "plugins": [{"name": "pixel-video", "source": "./", "description": "Audio to pixel-art video workflow."}]
+  "plugins": [{"name": "pixel-video", "source": "./", "description": "Staged pixel-video creation and editable projects."}]
 }

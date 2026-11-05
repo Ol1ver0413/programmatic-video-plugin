@@ -1,5 +1,8 @@
 {
   "name": "pixel-video",
-  "version": "0.1.0",
-  "description": "Create pixel-art videos from audio with timed captions and authored scene animation."
+  "version": "0.2.1",
+  "description": "Pixel video creation: brainstorm with references, plan a story, produce and learn from feedback.",
+  "author": {"name": "Ol1ver0413"},
+  "homepage": "https://github.com/Ol1ver0413/pixel-video-plugin",
+  "repository": "https://github.com/Ol1ver0413/pixel-video-plugin"
 }

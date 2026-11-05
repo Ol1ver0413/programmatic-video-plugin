@@ -1,4 +1,0 @@
-interface:
-  display_name: "Pixel Video"
-  short_description: "把音频与角色参考做成带逐句字幕和丰富动作的像素视频"
-  default_prompt: "使用 $pixel-video，把我的音频和角色参考制作成有情节、有动作、带对应字幕的像素视频。"

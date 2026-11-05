@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pixel Video · 入口"
+  short_description: "选择像素视频创作阶段，恢复项目进度，并使用已有素材和个人偏好"
+  default_prompt: "使用 $using-pixel-video，帮我开始或继续制作像素风视频。"

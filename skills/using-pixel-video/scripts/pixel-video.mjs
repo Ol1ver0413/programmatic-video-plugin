@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
 import {existsSync} from 'node:fs';
 import {cp, mkdir, readFile, writeFile, copyFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {spawn} from 'node:child_process';
 import {run,probe,checkCues,checkAndWrite} from '../assets/starter/tools/project.mjs';
+import {initWorkflow,context,checkpoint,finish,remember,readMemory} from './workflow.mjs';
 
 const skillDir=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const json=file=>readFile(file,'utf8').then(JSON.parse);
+const json=file=>readFile(file,'utf8').then(value=>JSON.parse(value.replace(/^\uFEFF/,'')));
 const save=(file,data)=>writeFile(file,JSON.stringify(data,null,2)+'\n');
 const number=(value,name)=>{const n=Number(value);if(value===undefined||!Number.isFinite(n))throw new Error(`${name} must be a number`);return n};
 function newFile(file){if(existsSync(file))throw new Error(`Will not overwrite ${file}`)}
@@ -34,24 +36,28 @@ export function clipCaptions(cues,offset,duration){
 }
 async function init(values){
   if(!values.out)throw new Error('init requires --out');
-  if(Boolean(values.audio)===Boolean(values.demo))throw new Error('Choose --audio or --demo');
+  if(values.audio&&values.demo)throw new Error('Choose --audio or --demo, not both');
+  if(values.duration&&(values.audio||values.demo))throw new Error('--duration is for silent projects; audio and demo supply their own duration');
   const target=path.resolve(values.out);newFile(target);
   const source=values.audio?path.resolve(values.audio):null;
-  const duration=source?audioDuration(source):8;
+  const duration=source?audioDuration(source):values.demo?8:number(values.duration??'8','duration');
+  if(duration<=0)throw new Error('duration must be positive');
   await mkdir(path.dirname(target),{recursive:true});await cp(path.join(skillDir,'assets/starter'),target,{recursive:true});
   const audioName=source?'clip'+path.extname(source).toLowerCase():'demo.wav';
-  await mkdir(path.join(target,'assets/audio'),{recursive:true});
   const audioFile=path.join(target,'assets/audio',audioName);
+  if(source||values.demo)await mkdir(path.dirname(audioFile),{recursive:true});
   if(source)await copyFile(source,audioFile);
-  else run('ffmpeg',['-hide_banner','-loglevel','error','-f','lavfi','-i','sine=frequency=220:sample_rate=44100:duration=8','-af','volume=0.06,tremolo=f=2:d=0.95','-ac','2',audioFile]);
+  else if(values.demo)run('ffmpeg',['-hide_banner','-loglevel','error','-f','lavfi','-i','sine=frequency=220:sample_rate=44100:duration=8','-af','volume=0.06,tremolo=f=2:d=0.95','-ac','2',audioFile]);
   const project=await json(path.join(target,'project.json'));
-  project.duration=duration;project.audio='assets/audio/'+audioName;
+  project.title=values.title?.trim()||path.basename(target);
+  project.duration=duration;project.audio=(source||values.demo)?'assets/audio/'+audioName:null;
   const bounds=[0,duration/3,duration*2/3,duration];
   project.scenes.forEach((s,i)=>{s.start=bounds[i];s.end=bounds[i+1]});
   await save(path.join(target,'project.json'),project);
   await save(path.join(target,'captions.json'),values.demo?project.scenes.map((s,i)=>({start:s.start,end:s.end,text:['Run to the gate','Open a new way','Make the landing'][i]})):[]);
-  await save(path.join(target,'assets/audio/source.json'),{kind:source?'user-file':'generated-demo-tone',source_file:source?path.basename(source):null,sha256:createHash('sha256').update(await readFile(audioFile)).digest('hex'),duration_seconds:duration});
-  console.log(`Created ${target}\nNext: install dependencies in that directory, then run npm run check and npm run dev. Scene animation is a starter; adapt it to the real audio.`);
+  if(project.audio)await save(path.join(target,'assets/audio/source.json'),{kind:source?'user-file':'generated-demo-tone',source_file:source?path.basename(source):null,sha256:createHash('sha256').update(await readFile(audioFile)).digest('hex'),duration_seconds:duration});
+  await initWorkflow(target,project.title);
+  console.log(`Created ${target}\nStart with brief.md and plan.md. This is an editable starter, not a content-derived storyboard. Run pixel-video context --project "${target}" to resume.`);
 }
 async function cutAudio(v){
   if(!v.input||!v.out)throw new Error('audio requires --input and --out');
@@ -67,10 +73,29 @@ async function cutAudio(v){
   console.log(out);
 }
 export async function main(argv=process.argv.slice(2)){
-  const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:Object.fromEntries(['out','audio','input','project','start','duration','offset'].map(x=>[x,{type:'string'}]).concat([['demo',{type:'boolean'}],['help',{type:'boolean'}]]))});
+  const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:Object.fromEntries(['out','audio','input','project','start','duration','offset','title','memory-dir','stage','note','key','value','evidence','port'].map(x=>[x,{type:'string'}]).concat(['demo','help','confirmed','stills','version'].map(x=>[x,{type:'boolean'}])))});
   const command=positionals[0];
-  if(values.help||!command){console.log('pixel-video.mjs doctor | init --out DIR (--audio FILE | --demo) | audio --input FILE --out FILE.wav --start SECONDS --duration SECONDS | captions --input FILE.srt|json --out FILE.json --offset SECONDS --duration SECONDS | validate --project DIR');return}
-  const allowed={doctor:[],init:['out','audio','demo'],audio:['input','out','start','duration'],captions:['input','out','offset','duration'],validate:['project']}[command];
+  if(values.version){console.log('0.2.1');return}
+  if(values.help||!command){console.log(`pixel-video — pixel video projects, media tools and personal memory
+
+  init --out DIR [--title TEXT] [--audio FILE | --demo | --duration SECONDS]
+  context --project DIR [--memory-dir DIR]
+  checkpoint --project DIR --stage STAGE --note TEXT
+  preview --project DIR [--port NUMBER]
+  render --project DIR [--stills]
+  finish --project DIR --input REVIEW.json [--memory-dir DIR]
+  memory [--memory-dir DIR]
+  remember --key KEY --value TEXT --evidence TEXT --confirmed [--project DIR] [--memory-dir DIR]
+  doctor
+  audio --input FILE --out FILE.wav --start SECONDS --duration SECONDS
+  captions --input FILE.srt|json --out FILE.json --offset SECONDS --duration SECONDS
+  validate --project DIR
+
+Stages: brainstorming, writing-plans, producing-video, finishing-video
+init without audio creates a silent starter (8 seconds unless --duration is set).
+Memory: --memory-dir > PIXEL_VIDEO_MEMORY_DIR > ~/.pixel-video/memory
+The CLI stores records; the agent authors the story, animation, review and preferences.`);return}
+  const allowed={doctor:[],init:['out','audio','demo','title','duration'],audio:['input','out','start','duration'],captions:['input','out','offset','duration'],validate:['project'],context:['project','memory-dir'],checkpoint:['project','stage','note'],preview:['project','port'],render:['project','stills'],finish:['project','input','memory-dir'],memory:['memory-dir'],remember:['key','value','evidence','confirmed','project','memory-dir']}[command];
   if(!allowed||positionals.length!==1)throw new Error(`Unknown command: ${positionals.join(' ')}`);
   for(const key of Object.keys(values))if(!allowed.includes(key))throw new Error(`${command} does not accept --${key}`);
   if(command==='doctor'){
@@ -84,6 +109,34 @@ export async function main(argv=process.argv.slice(2)){
     const out=path.resolve(values.out);newFile(out);const input=path.resolve(values.input);
     const cues=clipCaptions(parseCaptions(await readFile(input,'utf8'),path.extname(input).toLowerCase()),number(values.offset??'0','offset'),number(values.duration,'duration'));
     await mkdir(path.dirname(out),{recursive:true});await save(out,cues);console.log(`Wrote ${cues.length} captions to ${out}`);
-  }else{const r=await checkAndWrite(path.resolve(values.project||'.'));console.log(JSON.stringify({ok:true,scenes:r.project.scenes.length,captions:r.cues.length,warnings:r.warnings},null,2))}
+  }else if(command==='validate'){const r=await checkAndWrite(path.resolve(values.project||'.'));console.log(JSON.stringify({ok:true,scenes:r.project.scenes.length,captions:r.cues.length,warnings:r.warnings},null,2))}
+  else if(command==='memory')console.log(JSON.stringify(await readMemory(values['memory-dir']),null,2));
+  else if(command==='remember')console.log(JSON.stringify(await remember({directory:values['memory-dir'],key:values.key,value:values.value,evidence:values.evidence,confirmed:values.confirmed,project:values.project}),null,2));
+  else{
+    if(!values.project)throw new Error(`${command} requires --project`);
+    const root=path.resolve(values.project);
+    if(command==='context')console.log(JSON.stringify(await context(root,values['memory-dir']),null,2));
+    else if(command==='checkpoint')console.log(JSON.stringify(await checkpoint(root,values.stage,values.note),null,2));
+    else if(command==='finish'){
+      if(!values.input)throw new Error('finish requires --input REVIEW.json');
+      console.log(JSON.stringify(await finish(root,await json(path.resolve(values.input)),values['memory-dir']),null,2));
+    }else{
+      await checkAndWrite(root);
+      const args=command==='render'&&values.stills?['--stills']:[];
+      let port;
+      if(values.port!==undefined){port=number(values.port,'port');if(!Number.isInteger(port)||port<0||port>65535)throw new Error('port must be an integer from 0 to 65535')}
+      if(command==='preview'){
+        const {startServer}=await import(pathToFileURL(path.join(root,'tools/server.mjs')).href);
+        const {server,url}=await startServer(port??4173);
+        console.log(url);
+        process.once('SIGINT',()=>server.close());process.once('SIGTERM',()=>server.close());
+        return;
+      }
+      await new Promise((resolve,reject)=>{
+        const child=spawn(process.execPath,[path.join(root,'tools/render.mjs'),...args],{cwd:root,stdio:'inherit',windowsHide:true});
+        child.once('error',reject);child.once('exit',(code,signal)=>code===0?resolve():reject(new Error(`${command} stopped: ${signal||code}`)));
+      });
+    }
+  }
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{console.error(error.message);process.exitCode=1});

@@ -2,11 +2,12 @@
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {existsSync} from 'node:fs';
-import {writeFile} from 'node:fs/promises';
+import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.resolve(process.argv[2]||path.join(repo,'.work/smoke'));
+await mkdir(path.join(project,'output'),{recursive:true});
 const {chromium}=await import(pathToFileURL(path.join(project,'node_modules/playwright/index.mjs')).href);
 const {startServer}=await import(pathToFileURL(path.join(project,'tools/server.mjs')).href);
 const {server,url}=await startServer();let browser;

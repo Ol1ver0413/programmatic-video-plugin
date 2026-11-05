@@ -33,6 +33,7 @@ export async function validateProject(directory,{probeAudio=true}={}){
   const root=await realpath(directory),project=JSON.parse(await readFile(path.join(root,'project.json'),'utf8'));
   const errors=[],warnings=[];
   if(!Number.isFinite(project.duration)||project.duration<=0)errors.push('duration must be positive');
+  if(project.burnCaptions!==undefined&&typeof project.burnCaptions!=='boolean')errors.push('burnCaptions must be a boolean');
   for(const key of ['width','height','logicalWidth','logicalHeight','fps'])if(!Number.isInteger(project[key])||project[key]<=0)errors.push(`${key} must be a positive integer`);
   if(project.width%2||project.height%2)errors.push('H.264 output dimensions must be even');
   const scale=project.width/project.logicalWidth;
@@ -45,16 +46,18 @@ export async function validateProject(directory,{probeAudio=true}={}){
     ids.add(scene?.id);end=scene?.end;
   }
   if(Math.abs(end-project.duration)>1e-6)errors.push('Scenes must cover the full project duration');
-  const required=[project.audio,project.captions,...Object.values(project.assets||{}),...(project.font?[project.font]:[])];
+  const hasAudio=project.audio!==null&&project.audio!==undefined;
+  const hasCaptions=project.captions!==null&&project.captions!==undefined;
+  const required=[...(hasAudio?[project.audio]:[]),...(hasCaptions?[project.captions]:[]),...Object.values(project.assets||{}),...(project.font?[project.font]:[])];
   for(const relative of required){try{
     const file=await realpath(localFile(root,relative));
     const rel=path.relative(root,file);
     if(rel==='..'||rel.startsWith('..'+path.sep)||path.isAbsolute(rel)||!(await stat(file)).isFile())throw new Error('not an in-project file');
   }catch(e){errors.push(`Resource ${relative}: ${e.message}`)}}
   let cues=[];
-  try{cues=JSON.parse(await readFile(localFile(root,project.captions),'utf8'));errors.push(...checkCues(cues,project.duration));if(Array.isArray(cues)&&!cues.length)warnings.push('No captions yet; add aligned captions before final delivery')}
+  if(hasCaptions)try{cues=JSON.parse(await readFile(localFile(root,project.captions),'utf8'));errors.push(...checkCues(cues,project.duration));}
   catch(e){errors.push(`Captions: ${e.message}`)}
-  if(probeAudio&&!errors.length){try{
+  if(probeAudio&&hasAudio&&!errors.length){try{
     const info=probe(localFile(root,project.audio));
     if(!info.streams.some(s=>s.codec_type==='audio'))errors.push('Input has no audio stream');
     const duration=Number(info.format.duration);
