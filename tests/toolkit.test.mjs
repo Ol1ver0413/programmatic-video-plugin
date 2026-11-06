@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
 import {mkdtemp,writeFile,rm,rmdir} from 'node:fs/promises';
-import {parseCaptions,clipCaptions} from '../scripts/pixel-video.mjs';
-import {checkCues,toSrt,validateProject} from '../skills/using-pixel-video/assets/starter/tools/project.mjs';
+import {parseCaptions,clipCaptions} from '../scripts/programmatic-video.mjs';
+import {checkCues,toSrt,validateProject} from '../skills/using-programmatic-video/assets/starter/tools/project.mjs';
 
 test('source times move into the selected clip and crossing cues are cropped',()=>{
   const cues=clipCaptions([{start:38,end:39,text:'opening'},{start:47.54,end:49.02,text:'target'},{start:83,end:85,text:'ending'},{start:84,end:85,text:'excluded'}],38.88,45);
@@ -23,7 +23,7 @@ test('SRT preserves multiline text and rejects invalid or overlapping ranges',()
 });
 
 async function fixture(t){
-  const root=await mkdtemp(path.join(os.tmpdir(),'pixel-video-test-'));
+  const root=await mkdtemp(path.join(os.tmpdir(),'programmatic-video-test-'));
   const project={duration:3,fps:30,width:1280,height:720,logicalWidth:320,logicalHeight:180,audio:'audio.wav',captions:'captions.json',assets:{},scenes:[{id:'one',start:0,end:1},{id:'two',start:1,end:3}]};
   await writeFile(path.join(root,'audio.wav'),'fixture');
   await writeFile(path.join(root,'captions.json'),'[{"start":0,"end":3,"text":"test"}]');
@@ -50,4 +50,11 @@ test('project and caption JSON accept a leading UTF-8 BOM',async t=>{
   await writeFile(path.join(f.root,'captions.json'),'\uFEFF[{"start":0,"end":3,"text":"BOM caption"}]');
   const result=await validateProject(f.root,{probeAudio:false});
   assert.deepEqual(result.errors,[]);assert.equal(result.cues[0].text,'BOM caption');
+});
+
+test('non-pixel projects can use fractional uniform scaling while pixel projects retain integer scaling',async t=>{
+  const f=await fixture(t);f.project.logicalWidth=512;f.project.logicalHeight=288;await f.save();
+  assert.ok((await validateProject(f.root,{probeAudio:false})).errors.some(error=>error.includes('integer')));
+  f.project.pixelArt=false;await f.save();
+  assert.deepEqual((await validateProject(f.root,{probeAudio:false})).errors,[]);
 });

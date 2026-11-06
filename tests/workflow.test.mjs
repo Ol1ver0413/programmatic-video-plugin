@@ -6,19 +6,19 @@ import {fileURLToPath} from 'node:url';
 import {mkdtemp, mkdir, readFile, writeFile, rm, stat, symlink} from 'node:fs/promises';
 import {spawn, spawnSync} from 'node:child_process';
 import {once} from 'node:events';
-import {context, checkpoint, finish, remember, readMemory} from '../skills/using-pixel-video/scripts/workflow.mjs';
-import {validateProject} from '../skills/using-pixel-video/assets/starter/tools/project.mjs';
+import {context, checkpoint, finish, remember, readMemory} from '../skills/using-programmatic-video/scripts/workflow.mjs';
+import {validateProject,outputFile,checkAndWrite} from '../skills/using-programmatic-video/assets/starter/tools/project.mjs';
 
-const cli = fileURLToPath(new URL('../scripts/pixel-video.mjs', import.meta.url));
+const cli = fileURLToPath(new URL('../scripts/programmatic-video.mjs', import.meta.url));
 const json = async file => JSON.parse(await readFile(file, 'utf8'));
 function invoke(...args) {
   return spawnSync(process.execPath, [cli, ...args], {encoding:'utf8', windowsHide:true});
 }
 async function fixture(t) {
-  const parent = await mkdtemp(path.join(os.tmpdir(), 'pixel-video-workflow-'));
+  const parent = await mkdtemp(path.join(os.tmpdir(), 'programmatic-video-workflow-'));
   t.after(async () => {
     assert.equal(path.dirname(parent), os.tmpdir());
-    assert.ok(path.basename(parent).startsWith('pixel-video-workflow-'));
+    assert.ok(path.basename(parent).startsWith('programmatic-video-workflow-'));
     await rm(parent, {recursive:true, force:true});
   });
   const project = path.join(parent, '雨夜 便利店'), memory = path.join(parent, '个人 记忆');
@@ -39,13 +39,54 @@ test('CLI creates a silent named project without audio and preserves an existing
   assert.equal(invoke('--version').stdout.trim(), (await json(new URL('../package.json', import.meta.url))).version);
 });
 
+test('renamed CLI retains the old entry and accepts the legacy memory environment variable', async t=>{
+  const f=await fixture(t),legacy=fileURLToPath(new URL('../scripts/pixel-video.mjs',import.meta.url));
+  const result=spawnSync(process.execPath,[legacy,'--version'],{encoding:'utf8',windowsHide:true});
+  assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),invoke('--version').stdout.trim());
+  const pkg=await json(new URL('../package.json',import.meta.url));
+  assert.equal(pkg.bin['pixel-video'],pkg.bin['programmatic-video']);
+  const environment={...process.env,PIXEL_VIDEO_MEMORY_DIR:f.memory};delete environment.PROGRAMMATIC_VIDEO_MEMORY_DIR;
+  const old=spawnSync(process.execPath,[cli,'memory'],{encoding:'utf8',windowsHide:true,env:environment});
+  assert.equal(old.status,0,old.stderr);assert.equal(JSON.parse(old.stdout).file,path.join(f.memory,'preferences.json'));
+  environment.PROGRAMMATIC_VIDEO_MEMORY_DIR=path.join(f.parent,'preferred-memory');
+  const preferred=spawnSync(process.execPath,[cli,'memory'],{encoding:'utf8',windowsHide:true,env:environment});
+  assert.equal(preferred.status,0,preferred.stderr);assert.equal(JSON.parse(preferred.stdout).file,path.join(environment.PROGRAMMATIC_VIDEO_MEMORY_DIR,'preferences.json'));
+});
+
+test('context, remember and a later finish reuse the project-recorded custom memory directory',async t=>{
+  const f=await fixture(t);await mkdir(path.join(f.project,'output'));
+  await writeFile(path.join(f.project,'output/video.mp4'),'existing delivery');
+  const review={summary:'本版交付',style:'安静插画',deliverables:['output/video.mp4']};
+  await finish(f.project,review,f.memory);
+  const environment={...process.env};delete environment.PROGRAMMATIC_VIDEO_MEMORY_DIR;delete environment.PIXEL_VIDEO_MEMORY_DIR;
+  const call=(...args)=>spawnSync(process.execPath,[cli,...args],{encoding:'utf8',windowsHide:true,env:environment});
+  const resumed=call('context','--project',f.project);assert.equal(resumed.status,0,resumed.stderr);
+  assert.equal(JSON.parse(resumed.stdout).memory.file,path.join(f.memory,'preferences.json'));
+  const corrected=call('remember','--project',f.project,'--key','quiet-style','--value','留白','--evidence','用户明确要求','--confirmed');
+  assert.equal(corrected.status,0,corrected.stderr);
+  const input=path.join(f.project,'review-input.json');await writeFile(input,JSON.stringify(review));
+  const retried=call('finish','--project',f.project,'--input',input);assert.equal(retried.status,0,retried.stderr);
+  assert.equal((await readMemory(f.memory)).memory.preferences[0].value,'留白');
+  assert.match(await readFile(path.join(f.project,'review.md'),'utf8'),/pixel-video-review:/);
+});
+
+test('output paths cannot create directories through a symlink outside the project',async t=>{
+  const f=await fixture(t),outside=path.join(f.parent,'outside');await mkdir(outside);
+  await symlink(outside,path.join(f.project,'linked-output'),process.platform==='win32'?'junction':'dir');
+  await assert.rejects(outputFile(f.project,'linked-output/nested/frames.json'),/leaves project/);
+  await assert.rejects(stat(path.join(outside,'nested')),{code:'ENOENT'});
+  await symlink(outside,path.join(f.project,'output'),process.platform==='win32'?'junction':'dir');
+  await assert.rejects(checkAndWrite(f.project),/leaves project/);
+  await assert.rejects(stat(path.join(outside,'check.json')),{code:'ENOENT'});
+});
+
 test('CLI entry works through the directory link created by a local npm install', async t => {
   const f = await fixture(t), linked = path.join(f.parent, '安装 命令');
   const repo = path.dirname(path.dirname(cli));
   await symlink(repo, linked, process.platform === 'win32' ? 'junction' : 'dir');
-  const result = spawnSync(process.execPath, [path.join(linked, 'scripts/pixel-video.mjs'), '--help'], {encoding:'utf8', windowsHide:true});
+  const result = spawnSync(process.execPath, [path.join(linked, 'scripts/programmatic-video.mjs'), '--help'], {encoding:'utf8', windowsHide:true});
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /pixel-video —/);
+  assert.match(result.stdout, /programmatic-video —/);
 });
 
 test('preview CLI serves the selected project on an available port and exits cleanly', async t => {
@@ -251,7 +292,7 @@ test('finish CLI saves style and confirmed preferences, then a new session and p
   const hook = fileURLToPath(new URL('../hooks/session-start.mjs', import.meta.url));
   const restarted = spawnSync(process.execPath, [hook], {
     input:JSON.stringify({hook_event_name:'SessionStart', source:'startup'}), encoding:'utf8', windowsHide:true,
-    env:{...process.env, PIXEL_VIDEO_MEMORY_DIR:f.memory}
+    env:{...process.env, PROGRAMMATIC_VIDEO_MEMORY_DIR:f.memory}
   });
   assert.equal(restarted.status, 0, restarted.stderr);
   const guide = JSON.parse(restarted.stdout).hookSpecificOutput.additionalContext;

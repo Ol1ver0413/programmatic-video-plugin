@@ -1,6 +1,14 @@
 {
-  "name": "pixel-video-local",
-  "description": "Local marketplace for the Pixel Video creator plugin.",
-  "owner": {"name": "Pixel Video"},
-  "plugins": [{"name": "pixel-video", "source": "./", "description": "Staged pixel-video creation and editable projects."}]
+  "name": "programmatic-video-local",
+  "description": "Local marketplace for Programmatic Video.",
+  "owner": {
+    "name": "Programmatic Video"
+  },
+  "plugins": [
+    {
+      "name": "programmatic-video",
+      "source": "./",
+      "description": "Editable, code-driven video creation with staged skills and local tools."
+    }
+  ]
 }

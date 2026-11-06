@@ -1,4 +1,4 @@
 interface:
-  display_name: "Pixel Video · 制作"
-  short_description: "按脚本准备素材、编排像素动画与音画时间轴，并预览和修改镜头"
-  default_prompt: "使用 $producing-video，按这个项目的脚本和计划继续制作像素视频。"
+  display_name: "Programmatic Video · 制作"
+  short_description: "按脚本制作场景动画与动态小样，复用素材并针对用户反馈进行局部修改"
+  default_prompt: "使用 $producing-video，按本项目的需求和当前阶段继续工作。"

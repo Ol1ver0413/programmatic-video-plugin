@@ -1,12 +1,37 @@
 {
-  "name": "pixel-video-plugin",
-  "version": "0.2.1",
+  "name": "programmatic-video-plugin",
+  "version": "0.3.0",
   "private": true,
   "license": "MIT",
-  "description": "Pixel video creation skills and a local project CLI for creators.",
+  "description": "Agent skills and local tools for editable, code-driven videos.",
   "type": "module",
-  "bin": {"pixel-video": "scripts/pixel-video.mjs"},
-  "engines": {"node": ">=20"},
-  "files": ["scripts/", "skills/", "hooks/", ".claude-plugin/", ".codex-plugin/", "plugin.json", "LICENSE", "README.md", "README.zh-CN.md", "docs/getting-started.md"],
-  "scripts": {"test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs"}
+  "bin": {
+    "programmatic-video": "scripts/programmatic-video.mjs",
+    "pixel-video": "scripts/programmatic-video.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "scripts/",
+    "skills/",
+    "hooks/",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".agents/plugins/marketplace.json",
+    "plugin.json",
+    "LICENSE",
+    "README.md",
+    "README.zh-CN.md",
+    "docs/getting-started.md",
+    "docs/production-lessons.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs",
+    "format": "prettier --write \"scripts/**/*.mjs\" \"hooks/*.mjs\" \"skills/**/*.mjs\" \"skills/**/*.js\"",
+    "format:check": "prettier --check \"scripts/**/*.mjs\" \"hooks/*.mjs\" \"skills/**/*.mjs\" \"skills/**/*.js\""
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
 }

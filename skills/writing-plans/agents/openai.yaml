@@ -1,4 +1,4 @@
 interface:
-  display_name: "Pixel Video · 脚本与计划"
-  short_description: "将已确定的像素视频方向写成故事脚本、分镜、素材需求与制作计划"
-  default_prompt: "使用 $writing-plans，把这个像素视频的想法整理成脚本和制作计划。"
+  display_name: "Programmatic Video · 脚本与计划"
+  short_description: "把内容写成带时间的分镜与制作顺序，优先安排关键事件的动态验证小样"
+  default_prompt: "使用 $writing-plans，按本项目的需求和当前阶段继续工作。"

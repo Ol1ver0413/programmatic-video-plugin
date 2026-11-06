@@ -1,8 +1,8 @@
 {
-  "name": "pixel-video-local",
-  "interface": {"displayName": "Pixel Video"},
+  "name": "programmatic-video-local",
+  "interface": {"displayName": "Programmatic Video"},
   "plugins": [{
-    "name": "pixel-video",
+    "name": "programmatic-video",
     "source": {"source": "local", "path": "./"},
     "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
     "category": "Productivity"

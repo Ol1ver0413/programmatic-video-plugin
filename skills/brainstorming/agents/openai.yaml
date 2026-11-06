@@ -1,4 +1,4 @@
 interface:
-  display_name: "Pixel Video · 脑暴"
-  short_description: "边讨论边收集素材与参考，确定像素视频的创作意图、场景和画风"
-  default_prompt: "使用 $brainstorming，结合我提供的素材一起确定像素视频的方向。"
+  display_name: "Programmatic Video · 脑暴"
+  short_description: "结合用户素材与参考对齐内容、场景、画幅和期望感受，减少后期创作返工"
+  default_prompt: "使用 $brainstorming，按本项目的需求和当前阶段继续工作。"

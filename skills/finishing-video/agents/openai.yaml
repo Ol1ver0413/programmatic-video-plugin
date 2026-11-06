@@ -1,4 +1,4 @@
 interface:
-  display_name: "Pixel Video · 验收与沉淀"
-  short_description: "检查并交付像素视频，保存制作小结，再沉淀用户明确认可的长期偏好"
-  default_prompt: "使用 $finishing-video，检查这个视频并整理交付物、制作反馈和经验。"
+  display_name: "Programmatic Video · 验收与沉淀"
+  short_description: "检查完整交付并保存本版复盘、风格案例，以及用户明确认可的长期偏好"
+  default_prompt: "使用 $finishing-video，按本项目的需求和当前阶段继续工作。"

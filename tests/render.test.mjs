@@ -5,17 +5,17 @@ import path from 'node:path';
 import {cp,mkdtemp,mkdir,readFile,writeFile,readdir,rm} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {probe,run} from '../skills/using-pixel-video/assets/starter/tools/project.mjs';
+import {probe,run} from '../skills/using-programmatic-video/assets/starter/tools/project.mjs';
 
 const available=['ffmpeg','ffprobe'].every(exe=>spawnSync(exe,['-version'],{windowsHide:true}).status===0);
-const starter=fileURLToPath(new URL('../skills/using-pixel-video/assets/starter',import.meta.url));
-const cli=fileURLToPath(new URL('../scripts/pixel-video.mjs',import.meta.url));
+const starter=fileURLToPath(new URL('../skills/using-programmatic-video/assets/starter',import.meta.url));
+const cli=fileURLToPath(new URL('../scripts/programmatic-video.mjs',import.meta.url));
 
 // Real encoding and media checks, with a browser stub only to inject deterministic failures.
 test('failed exports preserve the previous delivery and successful exports publish a verified video', {skip:!available}, async t=>{
-  const root=await mkdtemp(path.join(os.tmpdir(),'pixel-video-render-'));
+  const root=await mkdtemp(path.join(os.tmpdir(),'programmatic-video-render-'));
   t.after(async()=>{
-    assert.equal(path.dirname(root),os.tmpdir());assert.ok(path.basename(root).startsWith('pixel-video-render-'));
+    assert.equal(path.dirname(root),os.tmpdir());assert.ok(path.basename(root).startsWith('programmatic-video-render-'));
     await rm(root,{recursive:true,force:true});
   });
   await cp(starter,root,{recursive:true});

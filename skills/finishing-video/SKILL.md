@@ -1,51 +1,45 @@
 ---
 name: finishing-video
-description: 在像素视频已进入看片、最终导出和交付阶段，或需要整理制作反馈、复盘与个人偏好时使用。
+description: 在视频准备正式交付，或需要整理本版反馈、制作复盘、风格案例与明确长期偏好时使用；检查完整成片并保存完成记录。
 ---
 
 # 验收与沉淀
 
-先读 [入口指南](../using-pixel-video/SKILL.md)，用 `pixel-video context` 恢复当前工程。按计划检查实际交付物，再记录反馈。继续局部修改时可回到 producing-video，保留已认可内容。
+按 [入口指南](../using-programmatic-video/SKILL.md) 恢复工程，保留已认可内容。局部修改可回到 producing-video；正式交付本版时仍检查完整成片。
 
-## 看片和交付
+## 检查实际交付
 
-用 `pixel-video render --project "<project>"` 导出。读取导出报告，确认视频尺寸、时长、音轨（如需要）和完整解码。再看片/听音：角色一致性、关键动作的接触与结果、字幕对应、最长字幕、片头和结尾。功能检查不代替审美判断。没有完成的验证如实说明，渲染失败时静帧仍是静帧。
+用 `programmatic-video render --project "<project>"` 导出完整视频，读取报告并按 [reviewing-video](../reviewing-video/SKILL.md) 检查实际编码成片、音频和字幕。核对脚本中必须出现的内容；小样只证明其覆盖范围，检查工具不判断用户满意。
 
-交付实际生成的成片、字幕（如有）、预览与可编辑工程路径。记录用户的修改意见和认可之处；没有反馈时写“尚无用户反馈”，不编造认可。工具只验证文件存在，不替你判断作品已符合需求。
+交付真实成片、字幕（如有）、可编辑工程和必要的审查证据。说明哪些已验证、哪些只是抽样、是否还有未解决问题；没有用户反馈就记录尚无反馈。需要 HTML 交接页时，复用工程内的交付、素材和环境信息，不另维护一套版本与镜头常量。
 
-## 每条视频留下小结
+## 收尾输入
 
-在项目保存 `review-input.json`，字段为：
+在工程中以 UTF-8 保存 `review-input.json`，读回确认文字完整、路径对应本版产物后再执行 finish：
 
 ```json
 {
-  "summary": "本次完成的内容和实际验证范围",
+  "summary": "本次完成内容、版本与实际验证范围",
   "deliverables": ["output/video.mp4"],
-  "style": "本片实际采用的画风、色板、构图、节奏和字幕处理，供下次参考",
+  "style": "本片实际画风、构图、节奏、动作或信息呈现与字幕处理",
   "feedback": [],
-  "lessons": ["本次实践中验证有效、可供下一条视频参考的方法"],
+  "lessons": [],
   "preferences": []
 }
 ```
 
-`style` 描述实际成片；没有用户反馈也照常保留风格案例。`preferences` 仅放用户明确表达或认可的长期习惯，没有则留空。例如：
-
-```json
-{"key":"subtitle-style","value":"字幕小一些，保留画面主体","evidence":"用户原话：以后我的视频字幕都小一点","confirmed":true}
-```
-
-本片临时要求留在反馈和风格案例中。不同 UP 主的专属偏好在 key 中注明所属，例如 `creator:UP主名:subtitle-style`，避免混用。
-
-运行 `pixel-video finish --project "<project>" --input "<project>/review-input.json"`，沿用本用户的 `--memory-dir` 配置。触发条件是这条命令通过交付文件和小结检查；它会自动调用完成回调，将风格案例和明确偏好写进个人 memory，并保存项目复盘，最后标记完成。同一份结果重试不会重复沉淀。执行成功后再报告本版完成；写入失败时修复可写位置并重试，不省略沉淀。
-
-小样、等待制作或用户暂停时用 `checkpoint` 保存进度。之后有新反馈时更新小结并再次 `finish`；如需改片，先 `checkpoint` 重开制作，完成后再收尾。
-
-## 更新个人记忆
-
-后续对话中补充明确的长期偏好时，也可单独运行：
+style 是实际风格案例，不代表长期喜好。反馈写用户真实表达；lessons 写经过实践的经验。关键事件理解错误、动作演出不足、素材不合格与导出问题分开记录，便于下次知道该改哪一层。
 
 ```sh
-pixel-video remember --project "<project>" --key "subtitle-style" --value "用户认可的长期字幕偏好" --evidence "用户实际表达或认可的原话" --confirmed
+programmatic-video finish --project "<project>" --input "<project>/review-input.json"
 ```
 
-`--confirmed` 表示已有用户表达作为依据，不能用来标记自己的猜测。当前要求优先于旧偏好；同一个 key 可更新，旧值留在 history。下次脑暴用 `memory`、续做用 `context` 读取相关记忆。个人记忆留在用户目录，通用 skill 的改进另做，不自动把私人素材或偏好写进公共插件。
+该命令检查交付文件和小结，再调用内部完成回调保存本片风格、明确偏好与项目复盘，最后标记完成；它不替代看片或媒体验证。同一份结果可重试，保存失败时修复并重试。调用成功后再报告本版完成，不能据此宣称用户已认可。
+
+## 长期偏好与续做
+
+preferences 只填用户明确表达或认可的长期习惯，要求 key、value、evidence 和 confirmed:true；没有就留空。本片“动作更有意思”等反馈保留在本片，除非用户明确要求以后沿用。不同创作者可使用 `creator:名字:偏好项` 的 key。
+
+后续补充明确偏好可用 `remember --key ... --value ... --evidence ... --confirmed`；带 `--project` 时该项目须已完成。当前要求优先于历史记录。个人记忆不自动回写公共 skill。
+
+继续改片先 checkpoint 重开工程；新版交付更新小结再 finish。使用同一记忆配置，具体恢复与兼容规则见 [工具约定](../using-programmatic-video/references/toolkit.md)。小样、暂停或等待反馈时只保存进度。

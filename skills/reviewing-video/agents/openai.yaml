@@ -1,0 +1,4 @@
+interface:
+  display_name: "Programmatic Video · 审片"
+  short_description: "用实际小样与编码成片检查内容、动作、音画和字幕，给出带时间证据的反馈"
+  default_prompt: "使用 $reviewing-video，按本项目的需求和当前阶段继续工作。"

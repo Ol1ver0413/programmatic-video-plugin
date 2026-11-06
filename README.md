@@ -1,46 +1,44 @@
-# Pixel Video
+# Programmatic Video
 
 [![X: @YZLin151776](https://img.shields.io/badge/X-%40YZLin151776-000000?style=flat&logo=x&logoColor=white)](https://x.com/YZLin151776) [![Douyin: 47421190572](https://img.shields.io/badge/Douyin-47421190572-FE2C55?style=flat&logo=tiktok&logoColor=white)](https://www.douyin.com/search/47421190572?type=user)
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-**A creative plugin for making pixel-art video clips and short films with Claude Code or Codex.**
+**An agent plugin for making editable, code-driven videos with Claude Code or Codex.**
 
-Explore ideas and references with your agent, plan the story and scenes, then build, preview and refine an editable video project.
+Start with lyrics, narration or an idea. Work with your agent on the script and scenes, make a moving draft, then refine and export the video. Pixel animation is one style; illustrated scenes, motion graphics and narration visuals can use the same workflow.
 
-Use it for music visuals, voice-over backgrounds, character actions and transitions. Projects support audio or silence; image generation, research and transcription use tools available in your host.
-
-**This project is in early development.** We're testing and refining the workflow through real video projects. Try it out, share feedback, or help improve the skills and tools. Issues and pull requests are welcome.
+**This project is in early development.** We're testing it through real video projects. Try it out, share feedback, or help improve the skills and tools. Issues and pull requests are welcome.
 
 ## How it works
 
-**Brainstorm with references → Write the story and plan → Produce and revise → Review, deliver and remember**
+**Brainstorm with references → Write the script and plan → Build a moving draft → Produce, review and deliver**
 
-Each video gets its own folder for the brief, plan, assets, editable scenes, exports and production notes. Save style references and confirmed preferences for future work.
+Each video has its own brief, plan, assets, editable scenes, previews and production notes. Keep useful style examples and explicitly confirmed preferences for future work.
 
-The plugin includes an entry skill, four creative stages, a session-start hook and a local `pixel-video` CLI.
+The plugin includes an entry skill, four creative stages, a reusable review skill, a session-start hook and a local `programmatic-video` CLI. Built-in rendering currently uses Canvas for image assets, animation and graphics; general external-video editing is still a future extension.
 
 ## Get started
 
 Install Node.js 20+, FFmpeg with ffprobe, and Chrome, Edge or Playwright Chromium.
 
-[Download the source ZIP](https://github.com/Ol1ver0413/pixel-video-plugin/archive/refs/heads/main.zip), or clone the repository and install the local CLI:
+[Download the source ZIP](https://github.com/Ol1ver0413/programmatic-video-plugin/archive/refs/heads/main.zip), or install from a local checkout:
 
 ```sh
-git clone https://github.com/Ol1ver0413/pixel-video-plugin.git
-cd pixel-video-plugin
+git clone https://github.com/Ol1ver0413/programmatic-video-plugin.git
+cd programmatic-video-plugin
 npm install --global .
-pixel-video --help
+programmatic-video --help
 ```
 
-This installs the CLI from your local checkout. **The package is not published to npm.**
+**The package is not published to npm.** Load the plugin in your host, start with `using-programmatic-video`, and describe what you want to make.
 
-Load the plugin in your host, then start with `using-pixel-video` and describe what you want to make. Bring your own media or explore references together:
+> Make an illustrated video for my narration. Let's discuss the scenes and try the opening before producing the rest.
 
-> Create a rainy-night convenience store scene as a background for my narration. Let's look at references and discuss the setting first.
+[Setup and migration (中文)](docs/getting-started.md) · [CLI and project conventions (中文)](skills/using-programmatic-video/references/toolkit.md) · [Lessons from real productions (中文)](docs/production-lessons.md)
 
-[Setup guide (中文)](docs/getting-started.md) · [CLI and project conventions (中文)](skills/using-pixel-video/references/toolkit.md)
+Formerly `pixel-video-plugin`. The `pixel-video` CLI alias and existing memory remain compatible.
 
 ## License
 
-Project code is licensed under [MIT](LICENSE). Bundled fonts retain their [original licenses](skills/using-pixel-video/assets/starter/assets/fonts/LICENSE.txt).
+Project code is licensed under [MIT](LICENSE). Bundled fonts retain their [original licenses](skills/using-programmatic-video/assets/starter/assets/fonts/LICENSE.txt).

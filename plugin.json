@@ -1,7 +1,12 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "pixel-video",
-  "version": "0.2.1",
-  "description": "Create pixel-art video materials through brainstorming, story planning, production and personal learning.",
-  "extensions": {"com.openai": {"requires_local_executor": true, "hooks": "./hooks/hooks.json"}}
+  "name": "programmatic-video",
+  "version": "0.3.0",
+  "description": "Agent-led video creation: brainstorm, plan, build moving drafts, review and learn.",
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "hooks": "./hooks/hooks.json"
+    }
+  }
 }
