@@ -16,7 +16,7 @@ description: 在用户要用代码制作、续做或修改视频、动画、配�
 | 工作 | 何时使用 |
 | --- | --- |
 | [brainstorming](../brainstorming/SKILL.md) | 边讨论边收集参考，明确场景与观看感受 |
-| [writing-plans](../writing-plans/SKILL.md) | 把内容写成带时间的脚本、分镜和验证顺序 |
+| [writing-plans](../writing-plans/SKILL.md) | 先写故事、动作或解释过程，再排带时间分镜与验证顺序 |
 | [producing-video](../producing-video/SKILL.md) | 先做代表性动态小样，再制作其余场景并局部修改 |
 | [reviewing-video](../reviewing-video/SKILL.md) | 检查语义、动作、音画与交付文件，必要时独立审片 |
 | [finishing-video](../finishing-video/SKILL.md) | 交付本版、记录反馈与经验、保存有依据的偏好 |

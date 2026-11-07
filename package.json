@@ -1,6 +1,6 @@
 {
   "name": "programmatic-video-plugin",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "license": "MIT",
   "description": "Agent skills and local tools for editable, code-driven videos.",
@@ -27,7 +27,7 @@
     "docs/production-lessons.md"
   ],
   "scripts": {
-    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs",
+    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs tests/reuse.test.mjs",
     "format": "prettier --write \"scripts/**/*.mjs\" \"hooks/*.mjs\" \"skills/**/*.mjs\" \"skills/**/*.js\"",
     "format:check": "prettier --check \"scripts/**/*.mjs\" \"hooks/*.mjs\" \"skills/**/*.mjs\" \"skills/**/*.js\""
   },

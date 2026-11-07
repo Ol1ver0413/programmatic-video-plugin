@@ -47,7 +47,7 @@ export async function collectFrames(directory, options = {}) {
     );
   const relativeOutput =
     options.out ||
-    `output/review/frames-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 6)}`;
+    `output/qa/frames-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 6)}`;
   const reportFile = await outputFile(root, relativeOutput + '/frames.json'),
     out = path.dirname(reportFile);
   // outputFile creates the parent; require an empty destination to preserve prior evidence.

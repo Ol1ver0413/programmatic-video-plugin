@@ -46,7 +46,7 @@ programmatic-video preview --project . --port 4174
 
 这是无声工具样例，正式制作需按脚本改写场景。已有音频用 init --audio；合成提示音用 --demo；两者不与 --duration 混用。缺 Chromium 时在作品目录运行 npx playwright install chromium，也可通过 CHROME_PATH 指定系统浏览器。
 
-更多命令和限制见 [工具约定](../skills/using-programmatic-video/references/toolkit.md)。正式交付时保存 UTF-8 review-input.json，再 finish 记录实际风格、经验与明确偏好；小样和暂停只 checkpoint。
+更多命令和限制见 [工具约定](../skills/using-programmatic-video/references/toolkit.md)。正常速度播放检查可用 `validate --playback`；已有取帧证据时，`render --no-stills` 可省去自动样帧。正式交付时在 output/qa/ 保存 UTF-8 review-input.json，再 finish 记录实际风格、经验与明确偏好；小样和暂停只 checkpoint。
 
 ## 开发检查
 
@@ -55,3 +55,5 @@ programmatic-video preview --project . --port 4174
 真实浏览器与 FFmpeg 的片段和取帧验证：`node tests/preview-smoke.mjs <已有 Playwright 的 index.mjs 路径>`。它创建并清理自己的工程，不修改该依赖所在作品。播放测试还可用 tests/smoke.mjs 与 tests/silent-smoke.mjs；特殊路径与 BOM 使用 tests/resources-smoke.mjs。
 
 skill 用 skill-creator 的 quick_validate.py 检查。自动检查与采样不等于创作质量验收；没有搭建 eval 框架。
+
+公共播放检查回归：`node tests/playback-smoke.mjs <已有 Playwright 的 index.mjs 路径>`，覆盖无声非像素、短字幕、等长/较长音轨、缺失结束事件、错误字幕、静态失败报告与无自动样帧的实际导出。

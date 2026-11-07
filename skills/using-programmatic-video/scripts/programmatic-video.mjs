@@ -8,8 +8,10 @@ import { selectRange } from '../assets/starter/tools/sampling.mjs';
 import { context, checkpoint, finish, remember, readMemory } from './workflow.mjs';
 import { readJson } from './files.mjs';
 import { createProject } from './project-init.mjs';
-import { cutAudio, convertCaptions, number } from './media.mjs';
+import { processAudio, convertCaptions, number } from './media.mjs';
 import { collectFrames } from './frames.mjs';
+import { checkPlayback } from './playback.mjs';
+import { inspectAtlas } from './atlas.mjs';
 
 export { parseCaptions, clipCaptions } from './media.mjs';
 
@@ -21,19 +23,21 @@ const help = `programmatic-video — editable video projects, media tools and pe
   context --project DIR [--memory-dir DIR]
   checkpoint --project DIR --stage STAGE --note TEXT
   preview --project DIR [--port NUMBER]
-  render --project DIR [--stills] [--scene ID | --start SECONDS --duration SECONDS] [--out FILE.mp4]
+  render --project DIR [--stills | --no-stills] [--scene ID | --start SECONDS --duration SECONDS] [--out FILE.mp4]
   frames --project DIR [--scene ID --samples NUMBER | --times 0.1,0.4,0.8] [--input FILE.mp4] [--out DIR]
   finish --project DIR --input REVIEW.json [--memory-dir DIR]
   memory [--memory-dir DIR]
   remember --key KEY --value TEXT --evidence TEXT --confirmed [--project DIR] [--memory-dir DIR]
   doctor
   audio --input FILE --out FILE.wav --start SECONDS --duration SECONDS
+  audio --mode locate|verify --input FILE --reference FILE --out REPORT.json [--windows SECONDS,... --duration SECONDS] [--sample-rate NUMBER]
+  atlas --project DIR --input IMAGE --columns NUMBER --rows NUMBER [--alpha-threshold NUMBER] [--out REPORT.json]
   captions --input FILE.srt|json --out FILE.json --offset SECONDS --duration SECONDS
-  validate --project DIR
+  validate --project DIR [--playback]
 
 Stages: brainstorming, writing-plans, producing-video, finishing-video
 init without audio creates a silent starter (8 seconds unless --duration is set).
-Range/custom-output renders use the built-in Canvas runtime, preserving project time and skipping custom project postprocessing.
+Range/custom-output/--no-stills renders use the built-in Canvas runtime, preserving project time and skipping custom project postprocessing.
 Memory: --memory-dir > PROGRAMMATIC_VIDEO_MEMORY_DIR > PIXEL_VIDEO_MEMORY_DIR > project record > ~/.pixel-video/memory
 The agent authors the story, animation, review and preferences; tools execute and store records.`;
 
@@ -70,14 +74,18 @@ async function preview(values) {
 }
 
 async function render(values) {
+  if (values.stills && values['no-stills']) throw new Error('Choose --stills or --no-stills');
   const root = projectRoot(values),
     args = values.stills ? ['--stills'] : [];
-  const hosted = ['scene', 'start', 'duration', 'out'].some((key) => values[key] !== undefined);
+  const hosted = ['scene', 'start', 'duration', 'out', 'no-stills'].some(
+    (key) => values[key] !== undefined,
+  );
   if (hosted) {
     selectRange(await readJson(path.join(root, 'project.json')), values);
     args.push('--project', root);
     for (const key of ['scene', 'start', 'duration', 'out'])
       if (values[key] !== undefined) args.push('--' + key, values[key]);
+    if (values['no-stills']) args.push('--no-stills');
   }
   const renderer = hosted
     ? path.join(skillDir, 'assets/starter/tools/render.mjs')
@@ -101,11 +109,20 @@ const commands = {
     options: ['out', 'audio', 'demo', 'title', 'duration'],
     run: (values) => createProject(values, path.join(skillDir, 'assets/starter')),
   },
-  audio: { options: ['input', 'out', 'start', 'duration'], run: cutAudio },
+  audio: {
+    options: ['input', 'out', 'start', 'duration', 'mode', 'reference', 'windows', 'sample-rate'],
+    run: processAudio,
+  },
+  atlas: {
+    options: ['project', 'input', 'columns', 'rows', 'alpha-threshold', 'out'],
+    project: true,
+    run: (values) => inspectAtlas(projectRoot(values), values),
+  },
   captions: { options: ['input', 'out', 'offset', 'duration'], run: convertCaptions },
   validate: {
-    options: ['project'],
+    options: ['project', 'playback'],
     run: async (values) => {
+      if (values.playback) return checkPlayback(projectRoot(values));
       const checked = await checkAndWrite(projectRoot(values));
       return {
         ok: true,
@@ -127,7 +144,7 @@ const commands = {
   },
   preview: { options: ['project', 'port'], project: true, run: preview },
   render: {
-    options: ['project', 'stills', 'scene', 'start', 'duration', 'out'],
+    options: ['project', 'stills', 'no-stills', 'scene', 'start', 'duration', 'out'],
     project: true,
     run: render,
   },
@@ -164,7 +181,15 @@ const commands = {
 };
 
 export async function main(argv = process.argv.slice(2)) {
-  const booleans = new Set(['demo', 'confirmed', 'stills', 'help', 'version']);
+  const booleans = new Set([
+    'demo',
+    'confirmed',
+    'stills',
+    'no-stills',
+    'playback',
+    'help',
+    'version',
+  ]);
   const names = new Set([
     ...Object.values(commands).flatMap((command) => command.options),
     ...booleans,

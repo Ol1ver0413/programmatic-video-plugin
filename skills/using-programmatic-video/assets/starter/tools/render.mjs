@@ -20,9 +20,11 @@ try {
       duration: { type: 'string' },
       out: { type: 'string' },
       stills: { type: 'boolean' },
+      'no-stills': { type: 'boolean' },
     },
   });
   if (positionals.length) throw new Error('Unexpected renderer arguments');
+  if (values.stills && values['no-stills']) throw new Error('Choose --stills or --no-stills');
   if (values.stills && values.out)
     throw new Error('Use frames --out DIR for a custom still-frame directory');
   const { project, root } = await checkAndWrite(path.resolve(values.project || defaultRoot));
@@ -62,25 +64,30 @@ try {
   const stillDirectory = range.partial
     ? `output/previews/stills-${range.firstFrame}-${range.endFrame}`
     : 'output/stills';
-  await outputFile(root, stillDirectory + '/placeholder');
-  await mkdir(localFile(root, stillDirectory), { recursive: true });
   const stills = [];
-  for (const [i, scene] of project.scenes.entries()) {
-    const from = Math.max(scene.start, range.start),
-      to = Math.min(scene.end, range.end, project.duration);
-    if (to <= from) continue;
-    for (const part of [0.15, 0.5, 0.85]) {
-      const time = from + (to - from) * part,
-        name = `${String(i + 1).padStart(2, '0')}-${Math.round(part * 100)}.png`,
-        file = stillDirectory + '/' + name;
-      await writeFile(await outputFile(root, file), await frame(time));
-      stills.push({ scene: scene.id, time, file });
+  if (!values['no-stills']) {
+    await outputFile(root, stillDirectory + '/placeholder');
+    await mkdir(localFile(root, stillDirectory), { recursive: true });
+    for (const [i, scene] of project.scenes.entries()) {
+      const from = Math.max(scene.start, range.start),
+        to = Math.min(scene.end, range.end, project.duration);
+      if (to <= from) continue;
+      for (const part of [0.15, 0.5, 0.85]) {
+        const time = from + (to - from) * part,
+          name = `${String(i + 1).padStart(2, '0')}-${Math.round(part * 100)}.png`,
+          file = stillDirectory + '/' + name;
+        await writeFile(await outputFile(root, file), await frame(time));
+        stills.push({ scene: scene.id, time, file });
+      }
     }
+    await writeFile(
+      await outputFile(
+        root,
+        range.partial ? stillDirectory + '/stills.json' : 'output/stills.json',
+      ),
+      JSON.stringify(stills, null, 2),
+    );
   }
-  await writeFile(
-    await outputFile(root, range.partial ? stillDirectory + '/stills.json' : 'output/stills.json'),
-    JSON.stringify(stills, null, 2),
-  );
   const stillsDone = performance.now();
   if (!values.stills) {
     temporaryVideo = path.join(out, `.video-${randomUUID()}.tmp.mp4`);
@@ -173,6 +180,7 @@ try {
       source_start_seconds: range.start,
       source_end_seconds: Math.min(range.end, project.duration),
       requested_range: [range.requestedStart, range.requestedEnd],
+      stills_written: stills.length,
       timings: {
         setup_seconds: seconds(setupDone - started),
         stills_seconds: seconds(stillsDone - setupDone),

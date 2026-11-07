@@ -145,6 +145,10 @@ try {
   };
   audio.onplay = () => (play.textContent = '暂停');
   audio.onpause = () => (play.textContent = '播放');
+  audio.onended = () => {
+    render(project.duration);
+    play.textContent = '播放';
+  };
   scrub.oninput = () => {
     position = Number(scrub.value);
     lastTick = performance.now();
@@ -154,7 +158,9 @@ try {
   function tick() {
     const now = performance.now();
     if (hasAudio && !audio.paused) {
-      if (audio.currentTime >= project.duration) audio.pause();
+      // An equal-length track must end naturally; pausing here suppresses `ended`.
+      if (audio.currentTime >= project.duration && audio.duration > project.duration + 0.05)
+        audio.pause();
       render(audio.currentTime);
     } else if (!hasAudio && playing) {
       position = Math.min(project.duration, position + (now - lastTick) / 1000);

@@ -15,7 +15,7 @@ description: 在视频准备正式交付，或需要整理本版反馈、制作�
 
 ## 收尾输入
 
-在工程中以 UTF-8 保存 `review-input.json`，读回确认文字完整、路径对应本版产物后再执行 finish：
+在 `output/qa/` 中以 UTF-8 保存 `review-input.json`（已有工程可沿用原位置），读回确认文字完整、路径对应本版产物后再执行 finish：
 
 ```json
 {
@@ -28,10 +28,10 @@ description: 在视频准备正式交付，或需要整理本版反馈、制作�
 }
 ```
 
-style 是实际风格案例，不代表长期喜好。反馈写用户真实表达；lessons 写经过实践的经验。关键事件理解错误、动作演出不足、素材不合格与导出问题分开记录，便于下次知道该改哪一层。
+style 是实际风格案例，不代表长期喜好。反馈写用户真实表达；lessons 写经过实践的经验，保留“哪项决定→观察到什么→下次适用条件”，不要只堆完成事项。后续反馈到来时沿用本工程补充，不把最初的“尚无反馈”当成永久结论。关键事件理解错误、动作演出不足、素材不合格与导出问题分开记录，便于下次知道该改哪一层。
 
 ```sh
-programmatic-video finish --project "<project>" --input "<project>/review-input.json"
+programmatic-video finish --project "<project>" --input "<project>/output/qa/review-input.json"
 ```
 
 该命令检查交付文件和小结，再调用内部完成回调保存本片风格、明确偏好与项目复盘，最后标记完成；它不替代看片或媒体验证。同一份结果可重试，保存失败时修复并重试。调用成功后再报告本版完成，不能据此宣称用户已认可。

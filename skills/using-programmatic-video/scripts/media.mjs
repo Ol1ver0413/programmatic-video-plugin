@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -121,4 +122,24 @@ export async function convertCaptions(values) {
   await mkdir(path.dirname(out), { recursive: true });
   await saveJson(out, cues);
   return `Wrote ${cues.length} captions to ${out}`;
+}
+
+export function processAudio(values) {
+  if (!values.mode || values.mode === 'cut') {
+    if (['reference', 'windows', 'sample-rate'].some((name) => values[name] !== undefined))
+      throw new Error('reference, windows and sample-rate require audio --mode locate or verify');
+    return cutAudio(values);
+  }
+  if (!['locate', 'verify'].includes(values.mode))
+    throw new Error('Audio mode must be cut, locate or verify');
+  if (values.start !== undefined) throw new Error('start applies only to audio cut mode');
+  const args = [];
+  for (const name of ['mode', 'input', 'reference', 'out', 'windows', 'duration', 'sample-rate'])
+    if (values[name] !== undefined) args.push('--' + name, values[name]);
+  return JSON.parse(
+    run(process.env.PROGRAMMATIC_VIDEO_PYTHON || 'python', [
+      fileURLToPath(new URL('./audio-audit.py', import.meta.url)),
+      ...args,
+    ]),
+  );
 }
