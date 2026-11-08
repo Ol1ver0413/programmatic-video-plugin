@@ -5,11 +5,11 @@ import path from 'node:path';
 import {cp,mkdtemp,mkdir,readFile,writeFile,readdir,rm} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {probe,run} from '../skills/using-programmatic-video/assets/starter/tools/project.mjs';
+import {probe,run} from '../cli/runtime/project.mjs';
 
 const available=['ffmpeg','ffprobe'].every(exe=>spawnSync(exe,['-version'],{windowsHide:true}).status===0);
-const starter=fileURLToPath(new URL('../skills/using-programmatic-video/assets/starter',import.meta.url));
-const cli=fileURLToPath(new URL('../scripts/programmatic-video.mjs',import.meta.url));
+const starter=fileURLToPath(new URL('../templates/video',import.meta.url));
+const cli=fileURLToPath(new URL('../cli/programmatic-video.mjs',import.meta.url));
 
 // Real encoding and media checks, with a browser stub only to inject deterministic failures.
 test('failed exports preserve the previous delivery and successful exports publish a verified video', {skip:!available}, async t=>{
@@ -19,6 +19,7 @@ test('failed exports preserve the previous delivery and successful exports publi
     await rm(root,{recursive:true,force:true});
   });
   await cp(starter,root,{recursive:true});
+  await cp(fileURLToPath(new URL('../cli/runtime',import.meta.url)),path.join(root,'tools'),{recursive:true});
   const project=JSON.parse(await readFile(path.join(root,'project.json'),'utf8'));
   Object.assign(project,{duration:1,fps:4,width:32,height:32,logicalWidth:32,logicalHeight:32,audio:null,captions:null,font:null});
   project.scenes=[{id:'fixture',start:0,end:1}];

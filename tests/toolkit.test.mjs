@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
 import {mkdtemp,writeFile,rm,rmdir} from 'node:fs/promises';
-import {parseCaptions,clipCaptions} from '../scripts/programmatic-video.mjs';
-import {checkCues,toSrt,validateProject} from '../skills/using-programmatic-video/assets/starter/tools/project.mjs';
+import {parseCaptions,clipCaptions} from '../cli/programmatic-video.mjs';
+import {checkCues,toSrt,validateProject} from '../cli/runtime/project.mjs';
 
 test('source times move into the selected clip and crossing cues are cropped',()=>{
   const cues=clipCaptions([{start:38,end:39,text:'opening'},{start:47.54,end:49.02,text:'target'},{start:83,end:85,text:'ending'},{start:84,end:85,text:'excluded'}],38.88,45);

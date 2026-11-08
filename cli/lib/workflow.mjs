@@ -4,8 +4,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { readFile, writeFile, mkdir, appendFile, realpath, stat, lstat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { localFile, parseJson } from '../assets/starter/tools/project.mjs';
-import { videoFinished } from '../../../hooks/video-finished.mjs';
+import { localFile, parseJson } from '../runtime/project.mjs';
+import { videoFinished } from '../../hooks/video-finished.mjs';
 import { upsertPreference } from './preferences.mjs';
 
 export const stages = ['brainstorming', 'writing-plans', 'producing-video', 'finishing-video'];

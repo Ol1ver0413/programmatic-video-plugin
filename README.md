@@ -18,6 +18,8 @@ Each video has its own brief, plan, assets, editable scenes, previews and produc
 
 The plugin includes an entry skill, four creative stages, a reusable review skill, a session-start hook and a local `programmatic-video` CLI. Built-in rendering currently uses Canvas for image assets, animation and graphics; general external-video editing is still a future extension.
 
+Shared commands live in `cli/`, launchers in `bin/`, project templates in `templates/`, hooks in `hooks/`, and workflow skills in `skills/`.
+
 ## Get started
 
 Install Node.js 20+, FFmpeg with ffprobe, and Chrome, Edge or Playwright Chromium.
@@ -41,4 +43,4 @@ Formerly `pixel-video-plugin`. The `pixel-video` CLI alias and existing memory r
 
 ## License
 
-Project code is licensed under [MIT](LICENSE). Bundled fonts retain their [original licenses](skills/using-programmatic-video/assets/starter/assets/fonts/LICENSE.txt).
+Project code is licensed under [MIT](LICENSE). Bundled fonts retain their [original licenses](templates/video/assets/fonts/LICENSE.txt).

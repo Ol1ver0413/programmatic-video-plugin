@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { run, probe, checkCues, parseJson } from '../assets/starter/tools/project.mjs';
+import { run, probe, checkCues, parseJson } from '../runtime/project.mjs';
 import { saveJson } from './files.mjs';
 export const number = (value, name) => {
   const n = Number(value);

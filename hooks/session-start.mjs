@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFile } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
-import { readMemory } from '../skills/using-programmatic-video/scripts/workflow.mjs';
+import { readMemory } from '../cli/lib/workflow.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export async function sessionStart(input = {}) {

@@ -13,7 +13,7 @@ const {chromium}=await import(pathToFileURL(dependency).href);
 const parent=await mkdtemp(path.join(os.tmpdir(),'programmatic-video-resources-'));
 const project=path.join(parent,'project');let browser,server;
 try {
-  const init=spawnSync(process.execPath,[path.join(repo,'scripts/programmatic-video.mjs'),'init','--out',project,'--demo'],{encoding:'utf8',windowsHide:true});
+  const init=spawnSync(process.execPath,[path.join(repo,'cli/programmatic-video.mjs'),'init','--out',project,'--demo'],{encoding:'utf8',windowsHide:true});
   assert.equal(init.status,0,init.stderr);
   const file=path.join(project,'project.json'),config=JSON.parse(await readFile(file,'utf8'));
   const directory="assets/media #100%20 (雨)'";
@@ -27,7 +27,7 @@ try {
   config.assets={special:image};
   await writeFile(file,'\uFEFF'+JSON.stringify(config));
   const captions=path.join(project,config.captions);await writeFile(captions,'\uFEFF'+await readFile(captions,'utf8'));
-  const validate=spawnSync(process.execPath,[path.join(repo,'scripts/programmatic-video.mjs'),'validate','--project',project],{encoding:'utf8',windowsHide:true});
+  const validate=spawnSync(process.execPath,[path.join(repo,'cli/programmatic-video.mjs'),'validate','--project',project],{encoding:'utf8',windowsHide:true});
   assert.equal(validate.status,0,validate.stderr);
   const started=await(await import(pathToFileURL(path.join(project,'tools/server.mjs')).href)).startServer();server=started.server;
   const executablePath=[process.env.CHROME_PATH,'C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome','/usr/bin/google-chrome','/usr/bin/chromium'].find(p=>p&&existsSync(p));

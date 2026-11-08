@@ -1,18 +1,21 @@
 {
   "name": "programmatic-video-plugin",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "license": "MIT",
   "description": "Agent skills and local tools for editable, code-driven videos.",
   "type": "module",
   "bin": {
-    "programmatic-video": "scripts/programmatic-video.mjs",
-    "pixel-video": "scripts/programmatic-video.mjs"
+    "programmatic-video": "bin/programmatic-video",
+    "pixel-video": "bin/programmatic-video"
   },
   "engines": {
     "node": ">=20"
   },
   "files": [
+    "bin/",
+    "cli/",
+    "templates/",
     "scripts/",
     "skills/",
     "hooks/",
@@ -27,9 +30,9 @@
     "docs/production-lessons.md"
   ],
   "scripts": {
-    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs tests/reuse.test.mjs",
-    "format": "prettier --write \"scripts/**/*.mjs\" \"hooks/*.mjs\" \"skills/**/*.mjs\" \"skills/**/*.js\"",
-    "format:check": "prettier --check \"scripts/**/*.mjs\" \"hooks/*.mjs\" \"skills/**/*.mjs\" \"skills/**/*.js\""
+    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs tests/reuse.test.mjs tests/layout.test.mjs",
+    "format": "prettier --write \"{bin,cli,hooks,scripts,skills,templates}/**/*.{mjs,js}\"",
+    "format:check": "prettier --check \"{bin,cli,hooks,scripts,skills,templates}/**/*.{mjs,js}\""
   },
   "devDependencies": {
     "prettier": "3.6.2"

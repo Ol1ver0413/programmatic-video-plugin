@@ -3,19 +3,20 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { spawn } from 'node:child_process';
-import { run, checkAndWrite } from '../assets/starter/tools/project.mjs';
-import { selectRange } from '../assets/starter/tools/sampling.mjs';
-import { context, checkpoint, finish, remember, readMemory } from './workflow.mjs';
-import { readJson } from './files.mjs';
-import { createProject } from './project-init.mjs';
-import { processAudio, convertCaptions, number } from './media.mjs';
-import { collectFrames } from './frames.mjs';
-import { checkPlayback } from './playback.mjs';
-import { inspectAtlas } from './atlas.mjs';
+import { realpathSync } from 'node:fs';
+import { run, checkAndWrite } from './runtime/project.mjs';
+import { selectRange } from './runtime/sampling.mjs';
+import { context, checkpoint, finish, remember, readMemory } from './lib/workflow.mjs';
+import { readJson } from './lib/files.mjs';
+import { createProject } from './lib/project-init.mjs';
+import { processAudio, convertCaptions, number } from './lib/media.mjs';
+import { collectFrames } from './lib/frames.mjs';
+import { checkPlayback } from './lib/playback.mjs';
+import { inspectAtlas } from './lib/atlas.mjs';
 
-export { parseCaptions, clipCaptions } from './media.mjs';
+export { parseCaptions, clipCaptions } from './lib/media.mjs';
 
-const skillDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const projectRoot = (values) => path.resolve(values.project || '.');
 const help = `programmatic-video — editable video projects, media tools and personal memory
 
@@ -88,7 +89,7 @@ async function render(values) {
     if (values['no-stills']) args.push('--no-stills');
   }
   const renderer = hosted
-    ? path.join(skillDir, 'assets/starter/tools/render.mjs')
+    ? path.join(pluginRoot, 'cli/runtime/render.mjs')
     : path.join(root, 'tools/render.mjs');
   await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [renderer, ...args], {
@@ -107,7 +108,7 @@ const commands = {
   doctor: { options: [], run: doctor },
   init: {
     options: ['out', 'audio', 'demo', 'title', 'duration'],
-    run: (values) => createProject(values, path.join(skillDir, 'assets/starter')),
+    run: (values) => createProject(values, path.join(pluginRoot, 'templates/video')),
   },
   audio: {
     options: ['input', 'out', 'start', 'duration', 'mode', 'reference', 'windows', 'sample-rate'],
@@ -199,7 +200,7 @@ export async function main(argv = process.argv.slice(2)) {
   );
   const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options });
   if (values.version) {
-    console.log((await readJson(path.join(skillDir, '../../package.json'))).version);
+    console.log((await readJson(path.join(pluginRoot, 'package.json'))).version);
     return;
   }
   if (values.help || !positionals.length) {
@@ -218,7 +219,10 @@ export async function main(argv = process.argv.slice(2)) {
     console.log(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  realpathSync(path.resolve(process.argv[1])) === fileURLToPath(import.meta.url)
+) {
   main().catch((error) => {
     console.error(error.message);
     process.exitCode = 1;

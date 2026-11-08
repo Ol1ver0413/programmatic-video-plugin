@@ -18,6 +18,8 @@
 
 插件包含一个入口 skill、四个创作阶段、一个可复用的审片 skill、启动 hook 和本地 `programmatic-video` CLI。内置渲染目前使用 Canvas 编排图片、动画和图形，通用外部视频剪辑仍是后续扩展方向。
 
+公共 CLI 在 `cli/`，命令启动文件在 `bin/`，工程模板在 `templates/`，hooks 与 skills 各自独立。
+
 ## 开始使用
 
 准备 Node.js 20+、FFmpeg（含 ffprobe）和 Chrome / Edge 或 Playwright Chromium。
@@ -41,4 +43,4 @@ programmatic-video --help
 
 ## 开源协议
 
-项目代码采用 [MIT 协议](LICENSE)。附带字体保留各自的[原有许可证](skills/using-programmatic-video/assets/starter/assets/fonts/LICENSE.txt)。
+项目代码采用 [MIT 协议](LICENSE)。附带字体保留各自的[原有许可证](templates/video/assets/fonts/LICENSE.txt)。

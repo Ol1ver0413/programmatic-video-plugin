@@ -6,10 +6,10 @@ import {fileURLToPath} from 'node:url';
 import {mkdtemp, mkdir, readFile, writeFile, rm, stat, symlink} from 'node:fs/promises';
 import {spawn, spawnSync} from 'node:child_process';
 import {once} from 'node:events';
-import {context, checkpoint, finish, remember, readMemory} from '../skills/using-programmatic-video/scripts/workflow.mjs';
-import {validateProject,outputFile,checkAndWrite} from '../skills/using-programmatic-video/assets/starter/tools/project.mjs';
+import {context, checkpoint, finish, remember, readMemory} from '../cli/lib/workflow.mjs';
+import {validateProject,outputFile,checkAndWrite} from '../cli/runtime/project.mjs';
 
-const cli = fileURLToPath(new URL('../scripts/programmatic-video.mjs', import.meta.url));
+const cli = fileURLToPath(new URL('../cli/programmatic-video.mjs', import.meta.url));
 const json = async file => JSON.parse(await readFile(file, 'utf8'));
 function invoke(...args) {
   return spawnSync(process.execPath, [cli, ...args], {encoding:'utf8', windowsHide:true});
@@ -84,7 +84,7 @@ test('CLI entry works through the directory link created by a local npm install'
   const f = await fixture(t), linked = path.join(f.parent, '安装 命令');
   const repo = path.dirname(path.dirname(cli));
   await symlink(repo, linked, process.platform === 'win32' ? 'junction' : 'dir');
-  const result = spawnSync(process.execPath, [path.join(linked, 'scripts/programmatic-video.mjs'), '--help'], {encoding:'utf8', windowsHide:true});
+  const result = spawnSync(process.execPath, [path.join(linked, 'cli/programmatic-video.mjs'), '--help'], {encoding:'utf8', windowsHide:true});
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /programmatic-video —/);
 });

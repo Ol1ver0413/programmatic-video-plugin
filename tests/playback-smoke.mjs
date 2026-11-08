@@ -5,13 +5,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdtemp, readFile, writeFile, symlink, rm, access } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-import { run } from '../skills/using-programmatic-video/assets/starter/tools/project.mjs';
+import { run } from '../cli/runtime/project.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const dependency = path.resolve(process.argv[2] || '.work/smoke/node_modules/playwright/index.mjs');
 const parent = await mkdtemp(path.join(os.tmpdir(), 'programmatic-video-playback-'));
 const root = path.join(parent, 'project');
-const cli = path.join(repo, 'scripts/programmatic-video.mjs');
+const cli = path.join(repo, 'cli/programmatic-video.mjs');
 const invoke = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8', windowsHide: true, timeout: 90000 });
 const save = (file, value) => writeFile(path.join(root, file), JSON.stringify(value));
 const report = async () => JSON.parse(await readFile(path.join(root, 'output/qa/playback.json'), 'utf8'));

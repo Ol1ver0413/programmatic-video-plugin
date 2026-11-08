@@ -2,10 +2,10 @@ import path from 'node:path';
 import { writeFile, realpath, stat, readdir } from 'node:fs/promises';
 import { randomUUID, createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { validateProject, localFile, outputFile, probe } from '../assets/starter/tools/project.mjs';
-import { selectTimes } from '../assets/starter/tools/sampling.mjs';
-import { startServer } from '../assets/starter/tools/server.mjs';
-import { openBrowser, loadProjectPage, captureFrame } from '../assets/starter/tools/browser.mjs';
+import { validateProject, localFile, outputFile, probe } from '../runtime/project.mjs';
+import { selectTimes } from '../runtime/sampling.mjs';
+import { startServer } from '../runtime/server.mjs';
+import { openBrowser, loadProjectPage, captureFrame } from '../runtime/browser.mjs';
 import { readJson } from './files.mjs';
 
 export async function collectFrames(directory, options = {}) {

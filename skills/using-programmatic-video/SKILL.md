@@ -24,7 +24,7 @@ description: 在用户要用代码制作、续做或修改视频、动画、配�
 ## 工程与工具
 
 - 一条视频一个可写目录；`brief.md`、`plan.md`、素材、代码、进度、预览和成片放在一起，安装目录保持只读。
-- 命令入口是 `programmatic-video`，旧命令 `pixel-video` 保留兼容。未全局安装时运行 `node "<plugin-root>/scripts/programmatic-video.mjs"`；插件根目录为本文件上两级。
+- 命令入口是 `programmatic-video`，旧命令 `pixel-video` 保留兼容。未全局安装时运行 `node "<plugin-root>/cli/programmatic-video.mjs"`；插件根目录为本文件上两级。
 - 阶段切换、关键进展或中断前用 `checkpoint` 记录已完成、下一步、待验证内容、当前小样和素材版本。它记录进度，不是代码快照。
 - 指定镜头/时间范围的动态小样用 `render --scene` 或 `render --start --duration`；取帧与带时间标注的总览用 `frames`。先看关键风险，再决定是否扩展生图和制作。
 - 素材搜索、图像生成与语音转写使用宿主实际可用能力。工具不代替故事、审美和用户偏好的判断。

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {selectRange,selectTimes} from '../skills/using-programmatic-video/assets/starter/tools/sampling.mjs';
+import {selectRange,selectTimes} from '../cli/runtime/sampling.mjs';
 
 const project={duration:4.25,fps:30,scenes:[{id:'intro',start:0,end:1.1},{id:'action',start:1.1,end:4.25}]};
 

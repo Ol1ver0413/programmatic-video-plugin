@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { realpath } from 'node:fs/promises';
-import { outputFile, checkAndWrite } from '../assets/starter/tools/project.mjs';
-import { startServer } from '../assets/starter/tools/server.mjs';
-import { openBrowser, captureFrame } from '../assets/starter/tools/browser.mjs';
+import { outputFile, checkAndWrite } from '../runtime/project.mjs';
+import { startServer } from '../runtime/server.mjs';
+import { openBrowser, captureFrame } from '../runtime/browser.mjs';
 import { saveJson } from './files.mjs';
 
 // Uses the starter's public player interface; it does not judge the film's content.

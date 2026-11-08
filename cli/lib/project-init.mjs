@@ -1,7 +1,8 @@
 import path from 'node:path';
-import { cp, mkdir, copyFile, readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { cp, mkdir, copyFile, readFile, rename } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { run } from '../assets/starter/tools/project.mjs';
+import { run } from '../runtime/project.mjs';
 import { initWorkflow } from './workflow.mjs';
 import { audioDuration, newFile, number } from './media.mjs';
 import { readJson, saveJson } from './files.mjs';
@@ -22,6 +23,10 @@ export async function createProject(values, starter) {
   if (values.demo) run('ffmpeg', ['-version']);
   await mkdir(path.dirname(target), { recursive: true });
   await cp(starter, target, { recursive: true });
+  await rename(path.join(target, 'gitignore'), path.join(target, '.gitignore'));
+  await cp(fileURLToPath(new URL('../runtime', import.meta.url)), path.join(target, 'tools'), {
+    recursive: true,
+  });
   const audioName = source ? 'clip' + path.extname(source).toLowerCase() : 'demo.wav';
   const audioFile = path.join(target, 'assets/audio', audioName);
   if (source || values.demo) await mkdir(path.dirname(audioFile), { recursive: true });

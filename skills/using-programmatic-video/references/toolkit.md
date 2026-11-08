@@ -2,7 +2,7 @@
 
 ## 入口与能力范围
 
-Node.js 20+，从源码执行 `npm install --global .` 安装 `programmatic-video`，旧的 `pixel-video` 作为命令别名保留。未全局安装时运行 `node "<plugin-root>/scripts/programmatic-video.mjs"`。插件没有运行时 npm 依赖；作品工程安装 Playwright，图像、音频处理和导出使用浏览器及 FFmpeg/ffprobe。
+Node.js 20+，从源码执行 `npm install --global .` 安装 `programmatic-video`，旧的 `pixel-video` 作为命令别名保留。未全局安装时运行 `node "<plugin-root>/cli/programmatic-video.mjs"`。插件没有运行时 npm 依赖；作品工程安装 Playwright，图像、音频处理和导出使用浏览器及 FFmpeg/ffprobe。
 
 内置运行时是 Canvas：以 `drawScene({ctx,scene,time,local,progress,width,height,assets})` 编排图片、图形、字幕和动画。外部视频混剪、透明视频、自动语音识别/强制对齐、自动循环接缝与任意比例自动重构图未内置。更名不表示这些能力已经实现；有额外需求时先验证宿主工具方案。
 
@@ -138,4 +138,4 @@ finish 输入 summary、deliverables、style、feedback、lessons、preferences�
 
 ## 代码模块
 
-scripts/programmatic-video.mjs 是命令入口；skill scripts 内的同名文件只做参数、路由和工具调用。media.mjs 处理音频字幕并路由可选 audio-audit.py，atlas.mjs 保存图集检查元数据，project-init.mjs 建工程，workflow.mjs 管理进度与收尾，files.mjs 保存 JSON，frames.mjs 收集视觉证据，playback.mjs 检查源播放器。模板 tools 内的 project/browser/sampling/server/render 分别负责验证与路径、浏览器、时间选择、预览服务和导出；故事和动作继续留在作品场景代码中。
+bin/ 提供命令启动文件，cli/programmatic-video.mjs 负责参数、路由和调用；cli/lib/ 按媒体、图集、取帧、播放检查、工程与状态分工，hooks 也复用其中的状态模块。cli/runtime/ 保存独立项目所需的校验、浏览器、预览服务、采样和渲染工具；init 将它们复制到新作品 tools/。templates/video/ 保存播放器、场景样例、配置与许可字体。skills/ 保存工作流指导，专属辅助脚本只在确有需要时留在对应 skill 中。

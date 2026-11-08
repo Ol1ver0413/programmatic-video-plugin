@@ -5,13 +5,13 @@ import os from 'node:os';
 import {mkdtemp,readFile,writeFile,symlink,rm} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {openBrowser,loadProjectPage} from '../skills/using-programmatic-video/assets/starter/tools/browser.mjs';
-import {startServer} from '../skills/using-programmatic-video/assets/starter/tools/server.mjs';
+import {openBrowser,loadProjectPage} from '../cli/runtime/browser.mjs';
+import {startServer} from '../cli/runtime/server.mjs';
 
 const repo=fileURLToPath(new URL('../',import.meta.url));
 const dependency=path.resolve(process.argv[2]||path.join(repo,'.work/smoke/node_modules/playwright/index.mjs'));
 const parent=await mkdtemp(path.join(os.tmpdir(),'programmatic-video-preview-'));
-const project=path.join(parent,'project'),cli=path.join(repo,'scripts/programmatic-video.mjs');
+const project=path.join(parent,'project'),cli=path.join(repo,'cli/programmatic-video.mjs');
 function command(executable,args){
   const result=spawnSync(executable,args,{encoding:'utf8',windowsHide:true,timeout:60000});
   assert.equal(result.status,0,result.stderr||result.error?.message);return result.stdout;

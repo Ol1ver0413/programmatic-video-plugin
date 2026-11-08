@@ -2,7 +2,7 @@ import path from 'node:path';
 import { realpath, readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { localFile, outputFile, probe } from '../assets/starter/tools/project.mjs';
+import { localFile, outputFile, probe } from '../runtime/project.mjs';
 import { newFile } from './media.mjs';
 
 export function inspectPixels(pixels, width, height, columns, rows, threshold = 180) {

@@ -1,5 +1,27 @@
 # 安装、迁移与验证
 
+## 插件目录与宿主加载
+
+```text
+plugin.json                    Codex 可移植插件清单
+.codex-plugin/plugin.json       Codex 兼容清单
+.claude-plugin/plugin.json      Claude Code 清单
+bin/                           命令启动文件
+cli/programmatic-video.mjs      CLI 参数与分发
+cli/lib/                       公共操作与状态逻辑
+cli/runtime/                   可复制到作品 tools/ 的运行工具
+templates/video/               初始化模板、播放器、字体与许可
+hooks/                         原生事件配置和完成回调
+skills/<name>/                 工作流说明与该 skill 专属资源
+tests/                         功能与集成验证
+```
+
+插件按整体分发。真正只供某个 skill 使用的脚本才放其 scripts/；公共操作通过 CLI 复用。scripts/ 中仅保留旧源码启动路径的兼容入口。
+
+Codex 与 Claude Code 根据各自清单和约定目录加载 skills、hooks，安装后从宿主缓存运行整份插件。CLI 通过 package.json 的 bin 注册命令；支持插件 bin/ 的 Claude Code 版本也可直接发现启动文件。不要把“宿主发现了 skill”理解为“系统已安装 npm 全局命令”。通用做法仍是先安装下面的 CLI；agent 也可用插件根目录下的 cli/programmatic-video.mjs。
+
+目录依据：[OpenAI 插件结构](https://developers.openai.com/plugins/build/plugins#plugin-structure)、[Claude Code 插件结构](https://code.claude.com/docs/en/plugins-reference#standard-layout)。本机旧版本的能力以实际验证为准。
+
 ## 安装源码与 CLI
 
 从 GitHub 下载 ZIP，或克隆 programmatic-video-plugin。在源码目录运行：
@@ -12,7 +34,7 @@ programmatic-video doctor
 
 包设为 private，不向 npm 发布。Node.js 最低20；音频和导出需 FFmpeg/ffprobe；作品工程安装 Playwright，浏览器用 Chrome/Edge 或 Chromium。全局 CLI 没有运行时 npm 依赖。
 
-Windows 可使用 npm.cmd、programmatic-video.cmd。命令找不到时检查 npm 全局命令目录的 PATH。没有全局写权限可用 `npm install --global --prefix "/可写目录" .`，把对应命令目录加入 PATH；也可直接用 node scripts/programmatic-video.mjs。
+Windows 可使用 npm.cmd、programmatic-video.cmd。命令找不到时检查 npm 全局命令目录的 PATH。没有全局写权限可用 `npm install --global --prefix "/可写目录" .`，把对应命令目录加入 PATH；也可直接用 node cli/programmatic-video.mjs。
 
 ## 从 Pixel Video 迁移
 
@@ -55,5 +77,7 @@ programmatic-video preview --project . --port 4174
 真实浏览器与 FFmpeg 的片段和取帧验证：`node tests/preview-smoke.mjs <已有 Playwright 的 index.mjs 路径>`。它创建并清理自己的工程，不修改该依赖所在作品。播放测试还可用 tests/smoke.mjs 与 tests/silent-smoke.mjs；特殊路径与 BOM 使用 tests/resources-smoke.mjs。
 
 skill 用 skill-creator 的 quick_validate.py 检查。自动检查与采样不等于创作质量验收；没有搭建 eval 框架。
+
+分发包验证：运行 `npm pack` 后将 tarball 解压，用 `node tests/package-smoke.mjs <解压后的 package 目录>` 检查从包内启动 CLI、初始化模板、独立工程运行工具、忽略规则与 SessionStart。它不借用源码中的工具实现。
 
 公共播放检查回归：`node tests/playback-smoke.mjs <已有 Playwright 的 index.mjs 路径>`，覆盖无声非像素、短字幕、等长/较长音轨、缺失结束事件、错误字幕、静态失败报告与无自动样帧的实际导出。

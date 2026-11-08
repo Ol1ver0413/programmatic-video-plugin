@@ -5,10 +5,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-import { inspectPixels } from '../skills/using-programmatic-video/scripts/atlas.mjs';
-import { run } from '../skills/using-programmatic-video/assets/starter/tools/project.mjs';
+import { inspectPixels } from '../cli/lib/atlas.mjs';
+import { run } from '../cli/runtime/project.mjs';
 
-const cli = fileURLToPath(new URL('../scripts/programmatic-video.mjs', import.meta.url));
+const cli = fileURLToPath(new URL('../cli/programmatic-video.mjs', import.meta.url));
 const invoke = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8', windowsHide: true });
 const available = ['ffmpeg', 'ffprobe'].every((exe) => spawnSync(exe, ['-version'], { windowsHide: true }).status === 0);
 async function directory(t) {

@@ -2,13 +2,9 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
-import { main } from '../skills/using-programmatic-video/scripts/programmatic-video.mjs';
+import { main } from '../cli/programmatic-video.mjs';
 
-export {
-  main,
-  parseCaptions,
-  clipCaptions,
-} from '../skills/using-programmatic-video/scripts/programmatic-video.mjs';
+export { main, parseCaptions, clipCaptions } from '../cli/programmatic-video.mjs';
 if (
   process.argv[1] &&
   realpathSync(path.resolve(process.argv[1])) === fileURLToPath(import.meta.url)

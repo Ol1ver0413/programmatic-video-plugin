@@ -1,6 +1,6 @@
 // CLI lifecycle hook. Called by `finish` after validating its delivery and review;
 // this is not a host event registered in hooks.json.
-import { upsertPreference } from '../skills/using-programmatic-video/scripts/preferences.mjs';
+import { upsertPreference } from '../cli/lib/preferences.mjs';
 
 export function videoFinished({ memory, project, title, review, reviewHash, completedAt }) {
   let next = structuredClone(memory);
