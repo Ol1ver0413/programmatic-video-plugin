@@ -7,6 +7,8 @@ description: 在已有视频脚本和分镜，需要准备资产、编写场景�
 
 按 [入口指南](../using-programmatic-video/SKILL.md) 接手工程，沿用本次需求、已认可的声音字幕和资产。接口与命令见 [工具约定](../using-programmatic-video/references/toolkit.md)。
 
+每次制作/修复维护同一份 project.json。用 `project --time ...` 定位场景、代码与素材；已接入代码的常调参数可用 `project --scene ... --set ... --value ...` 微调，再局部导出。小样完成后进入 reviewing-video，按通用检查与本片专项要求获取单个 reviewer 的集中反馈。
+
 ## 先验证关键表达，再扩展制作
 
 先实现计划里的代表性场景，产出短动态小样：
@@ -31,7 +33,9 @@ programmatic-video render --project "<project>" --scene "<scene-id>"
 
 ## 修改范围与效率
 
-图集分格与透明度可用 `atlas --project ... --input ... --columns ... --rows ...` 保存元数据；挂点仍按动作校准。需要从参考视频定位网上音源时用 `audio --mode locate`，核验编码音轨用 `audio --mode verify`；其 Python/NumPy 依赖、相关度和覆盖范围限制见工具约定。用这些现有入口代替每片重写 inspect-atlases、research-audio 或 verify-audio。
+固定操作统一调用 CLI。图集先用 atlas 分析，再按需要用 `--layout` 校准实际区域、共同参考高度与命名挂点，输出可被公共绘制器读取的描述。LRC 和音频/小样时间映射用 captions；编码小样取帧可用 `frames --input ... --map ...`。失败后以相同参数和 `--out ... --resume` 续做原证据，换版本则新建目录。完整用法按需读 [可复用媒体工具链](../using-programmatic-video/references/reusable-tools.md)，避免重写检查与时间换算脚本。
+
+录音定位继续用 `audio --mode locate`，音轨证据用 verify；整份编码规格、已选音轨与 sidecar 回归用 `validate --input ...`。公共绘制实现随新工程保留在 tools/，由 drawing.js 导出；作品场景只编排本片演出，不再各写一套裁切和挂点变换。既有工程的工具不会自动覆盖。
 
 - 先判断问题属于语义、演出、素材、时间/字幕还是导出。语义错误先修事件设计，避免反复精修最终不会采用的姿势。
 - 局部修改先检查该镜头、关键接触前后和邻接剪辑，再输出局部动态小样；正式交付仍导出完整成片。

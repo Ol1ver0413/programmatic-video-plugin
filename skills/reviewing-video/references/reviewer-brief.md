@@ -2,6 +2,8 @@
 
 交给宿主可用的子 agent 时，填入最小必要上下文：
 
+先让该 agent 阅读 `agents/video-reviewer.md`、reviewing-video 和 CLI 生成的 review-task.json。任务的 scene_map 来自绑定的导出版本；专项要求来自本项目 project.json，不能让 reviewer 新建另一套项目描述。通用项与专项项都应按 [结果约定](review-contract.md) 回答并通过 CLI 记录。
+
 - 项目目录和本次原始要求；相关 brief/plan 段落与用户反馈。
 - 审查范围：镜头 ID、片内时间，以及本次变更边界。
 - 实际小样/成片、技术报告与参考素材的路径；证据来自源工程还是编码视频。

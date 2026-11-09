@@ -13,6 +13,9 @@ import { processAudio, convertCaptions, number } from './lib/media.mjs';
 import { collectFrames } from './lib/frames.mjs';
 import { checkPlayback } from './lib/playback.mjs';
 import { inspectAtlas } from './lib/atlas.mjs';
+import { validateMedia } from './lib/media-check.mjs';
+import { inspectProject } from './lib/project-edit.mjs';
+import { reviewVideo } from './lib/review.mjs';
 
 export { parseCaptions, clipCaptions } from './lib/media.mjs';
 
@@ -22,19 +25,23 @@ const help = `programmatic-video — editable video projects, media tools and pe
 
   init --out DIR [--title TEXT] [--audio FILE | --demo | --duration SECONDS]
   context --project DIR [--memory-dir DIR]
+  project --project DIR [--time SECONDS | --scene ID] [--set PARAMETER --value JSON | --input VIDEO --report REPORT.json]
+  review --project DIR --input VIDEO [--report REPORT.json] [--scene ID | --start SECONDS --duration SECONDS] [--out output/qa/DIR]
+  review --project DIR --task output/qa/DIR/review-task.json [--result output/qa/DIR/observations.json]
   checkpoint --project DIR --stage STAGE --note TEXT
   preview --project DIR [--port NUMBER]
   render --project DIR [--stills | --no-stills] [--scene ID | --start SECONDS --duration SECONDS] [--out FILE.mp4]
-  frames --project DIR [--scene ID --samples NUMBER | --times 0.1,0.4,0.8] [--input FILE.mp4] [--out DIR]
+  frames --project DIR [--scene ID --samples NUMBER | --times 0.1,0.4,0.8] [--input FILE.mp4 [--map REPORT.json | --report EXPORT.json]] [--out DIR --resume]
   finish --project DIR --input REVIEW.json [--memory-dir DIR]
   memory [--memory-dir DIR]
   remember --key KEY --value TEXT --evidence TEXT --confirmed [--project DIR] [--memory-dir DIR]
   doctor
   audio --input FILE --out FILE.wav --start SECONDS --duration SECONDS
   audio --mode locate|verify --input FILE --reference FILE --out REPORT.json [--windows SECONDS,... --duration SECONDS] [--sample-rate NUMBER]
-  atlas --project DIR --input IMAGE --columns NUMBER --rows NUMBER [--alpha-threshold NUMBER] [--out REPORT.json]
-  captions --input FILE.srt|json --out FILE.json --offset SECONDS --duration SECONDS
+  atlas --project DIR --input IMAGE [--columns NUMBER --rows NUMBER | --layout LAYOUT.json] [--alpha-threshold NUMBER] [--out REPORT.json]
+  captions --input FILE.srt|json|lrc --out FILE.json [--offset SECONDS --duration SECONDS | --map REPORT.json]
   validate --project DIR [--playback]
+  validate --project DIR --input FILE.mp4 [--map REPORT.json | --report EXPORT.json] [--reference-audio FILE --min-correlation NUMBER] [--captions-file FILE --reference-captions FILE] [--out REPORT.json]
 
 Stages: brainstorming, writing-plans, producing-video, finishing-video
 init without audio creates a silent starter (8 seconds unless --duration is set).
@@ -105,6 +112,16 @@ async function render(values) {
 }
 
 const commands = {
+  review: {
+    options: ['project', 'input', 'report', 'scene', 'start', 'duration', 'out', 'task', 'result'],
+    project: true,
+    run: (values) => reviewVideo(projectRoot(values), values),
+  },
+  project: {
+    options: ['project', 'time', 'scene', 'set', 'value', 'input', 'report'],
+    project: true,
+    run: (values) => inspectProject(projectRoot(values), values),
+  },
   doctor: { options: [], run: doctor },
   init: {
     options: ['out', 'audio', 'demo', 'title', 'duration'],
@@ -115,14 +132,44 @@ const commands = {
     run: processAudio,
   },
   atlas: {
-    options: ['project', 'input', 'columns', 'rows', 'alpha-threshold', 'out'],
+    options: ['project', 'input', 'columns', 'rows', 'layout', 'alpha-threshold', 'out'],
     project: true,
     run: (values) => inspectAtlas(projectRoot(values), values),
   },
-  captions: { options: ['input', 'out', 'offset', 'duration'], run: convertCaptions },
+  captions: { options: ['input', 'out', 'offset', 'duration', 'map'], run: convertCaptions },
   validate: {
-    options: ['project', 'playback'],
+    options: [
+      'project',
+      'playback',
+      'input',
+      'map',
+      'reference-audio',
+      'min-correlation',
+      'captions-file',
+      'reference-captions',
+      'out',
+      'report',
+    ],
     run: async (values) => {
+      if (values.input) {
+        if (values.playback)
+          throw new Error('Choose encoded --input checks or source --playback checks');
+        const result = await validateMedia(projectRoot(values), values);
+        if (!result.ok) process.exitCode = 1;
+        return result;
+      }
+      if (
+        [
+          'map',
+          'reference-audio',
+          'min-correlation',
+          'captions-file',
+          'reference-captions',
+          'out',
+          'report',
+        ].some((name) => values[name] !== undefined)
+      )
+        throw new Error('Media check options require --input');
       if (values.playback) return checkPlayback(projectRoot(values));
       const checked = await checkAndWrite(projectRoot(values));
       return {
@@ -150,7 +197,7 @@ const commands = {
     run: render,
   },
   frames: {
-    options: ['project', 'scene', 'times', 'samples', 'input', 'out'],
+    options: ['project', 'scene', 'times', 'samples', 'input', 'out', 'map', 'report', 'resume'],
     project: true,
     run: (values) => collectFrames(projectRoot(values), values),
   },
@@ -188,6 +235,7 @@ export async function main(argv = process.argv.slice(2)) {
     'stills',
     'no-stills',
     'playback',
+    'resume',
     'help',
     'version',
   ]);

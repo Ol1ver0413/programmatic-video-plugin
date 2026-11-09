@@ -3,8 +3,11 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { run, probe, checkCues, parseJson } from '../runtime/project.mjs';
-import { saveJson } from './files.mjs';
+import { run, probe } from '../runtime/project.mjs';
+import { saveJson, readJson } from './files.mjs';
+import { timeMapping, readTimeMapping } from '../runtime/timing.mjs';
+import { parseCaptions, clipCaptions } from './captions.mjs';
+export { parseCaptions, clipCaptions } from './captions.mjs';
 export const number = (value, name) => {
   const n = Number(value);
   if (value === undefined || !Number.isFinite(n)) throw new Error(`${name} must be a number`);
@@ -22,46 +25,6 @@ export function audioDuration(file) {
   return d;
 }
 
-export function parseCaptions(text, format) {
-  let cues;
-  if (format === '.json') cues = parseJson(text);
-  else if (format === '.srt') {
-    const time = (s) => {
-      const match = /^(\d+):(\d{2}):(\d{2})[,.](\d{3})$/.exec(s.trim());
-      if (!match || Number(match[2]) > 59 || Number(match[3]) > 59)
-        throw new Error(`Invalid SRT timestamp: ${s}`);
-      return (
-        Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]) + Number(match[4]) / 1000
-      );
-    };
-    cues = text
-      .replace(/^\uFEFF/, '')
-      .trim()
-      .split(/\r?\n\s*\r?\n/)
-      .filter(Boolean)
-      .map((block) => {
-        const lines = block.split(/\r?\n/);
-        if (/^\d+$/.test(lines[0].trim())) lines.shift();
-        const range = lines.shift().split(/\s+-->\s+/);
-        if (range.length !== 2) throw new Error('Invalid SRT cue');
-        return { start: time(range[0]), end: time(range[1]), text: lines.join('\n') };
-      });
-  } else throw new Error('Captions must be .srt or .json');
-  const errors = checkCues(cues, Number.MAX_VALUE);
-  if (errors.length) throw new Error(errors.join('\n'));
-  return cues;
-}
-export function clipCaptions(cues, offset, duration) {
-  if (!Number.isFinite(offset) || offset < 0 || !Number.isFinite(duration) || duration <= 0)
-    throw new Error('offset must be nonnegative and duration positive');
-  return cues
-    .filter((c) => c.end > offset && c.start < offset + duration)
-    .map((c) => ({
-      start: Math.max(0, c.start - offset),
-      end: Math.min(duration, c.end - offset),
-      text: c.text,
-    }));
-}
 export async function cutAudio(v) {
   if (!v.input || !v.out) throw new Error('audio requires --input and --out');
   const start = number(v.start ?? '0', 'start'),
@@ -105,6 +68,7 @@ export async function cutAudio(v) {
     start_seconds: start,
     duration_seconds: duration,
     verified_duration_seconds: actual,
+    time_mapping: timeMapping(start, start + duration),
   });
   return out;
 }
@@ -114,14 +78,40 @@ export async function convertCaptions(values) {
   const out = path.resolve(values.out);
   newFile(out);
   const input = path.resolve(values.input);
+  if (values.map && (values.offset !== undefined || values.duration !== undefined))
+    throw new Error('Choose --map or --offset/--duration');
+  const mapping = values.map
+    ? readTimeMapping(await readJson(path.resolve(values.map)))
+    : timeMapping(
+        number(values.offset ?? '0', 'offset'),
+        number(values.offset ?? '0', 'offset') + number(values.duration, 'duration'),
+      );
   const cues = clipCaptions(
-    parseCaptions(await readFile(input, 'utf8'), path.extname(input).toLowerCase()),
-    number(values.offset ?? '0', 'offset'),
-    number(values.duration, 'duration'),
-  );
+    parseCaptions(await readFile(input, 'utf8'), path.extname(input).toLowerCase(), {
+      end: mapping.source_end_seconds,
+    }),
+    mapping.source_start_seconds,
+    mapping.source_end_seconds - mapping.source_start_seconds,
+  ).map((cue) => ({
+    ...cue,
+    start: cue.start + mapping.output_start_seconds,
+    end: cue.end + mapping.output_start_seconds,
+  }));
   await mkdir(path.dirname(out), { recursive: true });
   await saveJson(out, cues);
-  return `Wrote ${cues.length} captions to ${out}`;
+  return { file: out, captions: cues.length, time_mapping: mapping };
+}
+
+export function auditAudio(values) {
+  const args = [];
+  for (const name of ['mode', 'input', 'reference', 'out', 'windows', 'duration', 'sample-rate'])
+    if (values[name] !== undefined) args.push('--' + name, values[name]);
+  return JSON.parse(
+    run(process.env.PROGRAMMATIC_VIDEO_PYTHON || 'python', [
+      fileURLToPath(new URL('./audio-audit.py', import.meta.url)),
+      ...args,
+    ]),
+  );
 }
 
 export function processAudio(values) {
@@ -133,13 +123,6 @@ export function processAudio(values) {
   if (!['locate', 'verify'].includes(values.mode))
     throw new Error('Audio mode must be cut, locate or verify');
   if (values.start !== undefined) throw new Error('start applies only to audio cut mode');
-  const args = [];
-  for (const name of ['mode', 'input', 'reference', 'out', 'windows', 'duration', 'sample-rate'])
-    if (values[name] !== undefined) args.push('--' + name, values[name]);
-  return JSON.parse(
-    run(process.env.PROGRAMMATIC_VIDEO_PYTHON || 'python', [
-      fileURLToPath(new URL('./audio-audit.py', import.meta.url)),
-      ...args,
-    ]),
-  );
+  if (!values.out) throw new Error('Audio evidence requires --out REPORT.json');
+  return auditAudio(values);
 }

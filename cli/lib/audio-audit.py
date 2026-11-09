@@ -58,14 +58,14 @@ def main():
     parser.add_argument('--mode', choices=['locate', 'verify'], required=True)
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--reference', type=Path, required=True)
-    parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--out', type=Path)
     parser.add_argument('--sample-rate', type=int, default=8000)
     parser.add_argument('--windows', help='Comma-separated reference start times for locate mode')
     parser.add_argument('--duration', type=float, help='Locate window length; default up to four seconds')
     args = parser.parse_args()
-    if args.out.suffix.lower() != '.json':
+    if args.out and args.out.suffix.lower() != '.json':
         raise ValueError('Audio audit report output must be .json')
-    if args.out.exists():
+    if args.out and args.out.exists():
         raise ValueError('Refusing to overwrite existing report')
     if not 1000 <= args.sample_rate <= 48000:
         raise ValueError('sample-rate must be from 1000 to 48000')
@@ -95,10 +95,11 @@ def main():
                       candidate_origin_seconds=float(np.median(origins)), origin_spread_seconds=max(origins)-min(origins))
     report['input_sha256'] = hashlib.sha256(args.input.read_bytes()).hexdigest()
     report['reference_sha256'] = hashlib.sha256(args.reference.read_bytes()).hexdigest()
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    with args.out.open('x', encoding='utf-8') as file:
-        json.dump(report, file, ensure_ascii=False, indent=2)
-        file.write('\n')
+    if args.out:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        with args.out.open('x', encoding='utf-8') as file:
+            json.dump(report, file, ensure_ascii=False, indent=2)
+            file.write('\n')
     print(json.dumps(report, ensure_ascii=False))
 
 

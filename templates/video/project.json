@@ -11,9 +11,10 @@
   "captions": "captions.json",
   "font": "assets/fonts/fusion-pixel-12px.woff2",
   "assets": {},
+  "review": {"requirements": []},
   "scenes": [
-    {"id":"run","start":0,"end":2.6666666666666665,"intent":"Approach the closed gate"},
-    {"id":"gate","start":2.6666666666666665,"end":5.333333333333333,"intent":"Wind up, strike, open a path"},
-    {"id":"jump","start":5.333333333333333,"end":8,"intent":"Prepare, jump, land"}
+    {"id":"run","start":0,"end":2.6666666666666665,"intent":"Approach the closed gate","source":{"file":"src/scenes.js","symbol":"drawScene"},"assets":[],"params":{"actorScale":1,"offsetX":0,"offsetY":0}},
+    {"id":"gate","start":2.6666666666666665,"end":5.333333333333333,"intent":"Wind up, strike, open a path","source":{"file":"src/scenes.js","symbol":"drawScene"},"assets":[],"params":{"actorScale":1,"offsetX":0,"offsetY":0}},
+    {"id":"jump","start":5.333333333333333,"end":8,"intent":"Prepare, jump, land","source":{"file":"src/scenes.js","symbol":"drawScene"},"assets":[],"params":{"actorScale":1,"offsetX":0,"offsetY":0}}
   ]
 }

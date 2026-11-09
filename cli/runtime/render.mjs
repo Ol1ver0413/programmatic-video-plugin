@@ -8,6 +8,8 @@ import { startServer, root as defaultRoot } from './server.mjs';
 import { checkAndWrite, run, probe, localFile, outputFile } from './project.mjs';
 import { openBrowser, loadProjectPage, captureFrame } from './browser.mjs';
 import { selectRange } from './sampling.mjs';
+import { timeMapping } from './timing.mjs';
+import { snapshotProject, projectInputs, hashFile } from './manifest.mjs';
 
 let browser, server, encoder, encoderClosed, temporaryVideo, temporaryReport;
 try {
@@ -27,7 +29,7 @@ try {
   if (values.stills && values['no-stills']) throw new Error('Choose --stills or --no-stills');
   if (values.stills && values.out)
     throw new Error('Use frames --out DIR for a custom still-frame directory');
-  const { project, root } = await checkAndWrite(path.resolve(values.project || defaultRoot));
+  const { project, root, cues } = await checkAndWrite(path.resolve(values.project || defaultRoot));
   const range = selectRange(project, values);
   const relativeDestination =
     values.out ||
@@ -55,6 +57,7 @@ try {
   if (range.partial && isCanonical)
     throw new Error('A partial preview cannot replace output/video.mp4');
   const report = isCanonical ? path.join(out, 'render-report.json') : destination + '.report.json';
+  const snapshot = values.stills ? null : await snapshotProject(root, project, cues);
   const startedServer = await startServer(0, root);
   server = startedServer.server;
   browser = await openBrowser(root);
@@ -164,10 +167,24 @@ try {
       Math.abs(Number(info.format.duration) - range.duration) > 1 / project.fps + 0.025
     )
       throw new Error('Exported media does not match the project');
-    run('ffmpeg', ['-hide_banner', '-v', 'error', '-i', temporaryVideo, '-f', 'null', '-']);
+    run('ffmpeg', [
+      '-hide_banner',
+      '-v',
+      'error',
+      '-xerror',
+      '-i',
+      temporaryVideo,
+      '-f',
+      'null',
+      '-',
+    ]);
     const verified = performance.now(),
       seconds = (value) => Math.round(value) / 1000;
+    if ((await projectInputs(root, project)).fingerprint !== snapshot.fingerprint)
+      throw new Error('Project inputs changed during rendering; existing delivery preserved');
     const result = {
+      video_sha256: await hashFile(temporaryVideo),
+      project_snapshot: snapshot,
       duration_seconds: Number(info.format.duration),
       width: video.width,
       height: video.height,
@@ -180,6 +197,7 @@ try {
       source_start_seconds: range.start,
       source_end_seconds: Math.min(range.end, project.duration),
       requested_range: [range.requestedStart, range.requestedEnd],
+      time_mapping: timeMapping(range.start, range.end),
       stills_written: stills.length,
       timings: {
         setup_seconds: seconds(setupDone - started),

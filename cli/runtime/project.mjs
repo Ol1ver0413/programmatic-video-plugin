@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { readFile, realpath, stat, writeFile, mkdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { checkProjectLinks } from './project-links.mjs';
 
 export function parseJson(text) {
   return JSON.parse(text.replace(/^\uFEFF/, ''));
@@ -108,6 +109,7 @@ export async function validateProject(directory, { probeAudio = true } = {}) {
     project = parseJson(await readFile(path.join(root, 'project.json'), 'utf8'));
   const errors = [],
     warnings = [];
+  errors.push(...checkProjectLinks(project));
   if (!Number.isFinite(project.duration) || project.duration <= 0)
     errors.push('duration must be positive');
   if (project.burnCaptions !== undefined && typeof project.burnCaptions !== 'boolean')
@@ -151,6 +153,12 @@ export async function validateProject(directory, { probeAudio = true } = {}) {
     ...(hasCaptions ? [project.captions] : []),
     ...Object.values(project.assets || {}),
     ...(project.font ? [project.font] : []),
+    ...(Array.isArray(project.scenes) ? project.scenes : []).flatMap((scene) =>
+      scene?.source?.file ? [scene.source.file] : [],
+    ),
+    ...(Array.isArray(project.review?.requirements) ? project.review.requirements : []).flatMap(
+      (check) => (check?.reference ? [check.reference] : []),
+    ),
   ];
   for (const relative of required) {
     try {

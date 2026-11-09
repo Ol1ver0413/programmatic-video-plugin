@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { localFile, parseJson } from '../runtime/project.mjs';
 import { videoFinished } from '../../hooks/video-finished.mjs';
 import { upsertPreference } from './preferences.mjs';
+import { reviewVideo } from './review.mjs';
 
 export const stages = ['brainstorming', 'writing-plans', 'producing-video', 'finishing-video'];
 const stamp = () => new Date().toISOString();
@@ -166,6 +167,7 @@ export async function context(directory, memoryDir) {
   const { file, memory } = await readMemory(projectMemory(record, memoryDir));
   return {
     project: root,
+    manifest: await readJson(path.join(root, 'project.json')),
     workflow: record,
     documents,
     memory: { file, preferences: memory.preferences, videos: memory.videos.slice(-5).reverse() },
@@ -206,6 +208,22 @@ export async function finish(directory, input, memoryDir) {
     if (!info.isFile() || info.size === 0)
       throw new Error(`Deliverable is empty or not a file: ${relative}`);
   }
+  let reviewedTask;
+  if (input.reviewTask !== undefined) {
+    reviewedTask = text(input.reviewTask, 'reviewTask');
+    const reviewed = await reviewVideo(root, { task: reviewedTask });
+    if (reviewed.status !== 'reviewed' || !reviewed.source_matches_current)
+      throw new Error('Review is incomplete, needs changes or belongs to an older project version');
+    const duration = (await readJson(path.join(root, 'project.json'))).duration;
+    if (reviewed.scope.start > 1e-7 || reviewed.scope.end < duration - 1e-7)
+      throw new Error('Final review must cover the full project, not only a sample');
+    const reviewedFile = await realpath(localFile(root, reviewed.input));
+    const delivered = await Promise.all(
+      deliverables.map((file) => realpath(localFile(root, file))),
+    );
+    if (!delivered.includes(reviewedFile))
+      throw new Error('Reviewed video must be one of the deliverables');
+  }
   const style = text(
     input.style,
     'style: describe the delivered video so the next project can reference it',
@@ -223,7 +241,15 @@ export async function finish(directory, input, memoryDir) {
   });
   if (new Set(preferences.map((item) => item.key)).size !== preferences.length)
     throw new Error('Duplicate preference keys in review');
-  const review = { summary, feedback, lessons, deliverables, style, preferences };
+  const review = {
+    summary,
+    feedback,
+    lessons,
+    deliverables,
+    style,
+    preferences,
+    ...(reviewedTask ? { reviewTask: reviewedTask } : {}),
+  };
   const digest = createHash('sha256').update(JSON.stringify(review)).digest('hex');
   // Fail before marking the project complete if its shared memory cannot be read.
   const previous = await workflow(root);
@@ -264,6 +290,7 @@ export async function finish(directory, input, memoryDir) {
     completedAt: now,
     updatedAt: now,
     lastReviewHash: digest,
+    ...(reviewedTask ? { lastReviewTask: reviewedTask } : {}),
     memory: { file, reviewHash: digest, recordedAt: now },
   });
   await saveJson(path.join(root, 'workflow.json'), record);

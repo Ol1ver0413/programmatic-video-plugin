@@ -1,6 +1,7 @@
 import { readFile, writeFile, rename, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { parseJson } from '../runtime/project.mjs';
+export { containedFile as projectFile, hashFile as fileHash } from '../runtime/manifest.mjs';
 
 export async function readJson(file) {
   return parseJson(await readFile(file, 'utf8'));

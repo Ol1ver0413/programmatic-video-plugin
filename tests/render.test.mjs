@@ -27,7 +27,7 @@ test('failed exports preserve the previous delivery and successful exports publi
   const dependency=path.join(root,'node_modules/playwright');await mkdir(dependency,{recursive:true});
   await writeFile(path.join(dependency,'package.json'),JSON.stringify({type:'module',exports:'./index.mjs'}));
   await writeFile(path.join(dependency,'index.mjs'),`
-    import {readFile} from 'node:fs/promises';
+    import {readFile,appendFile} from 'node:fs/promises';
     const png=(await readFile(new URL('../../frame.png',import.meta.url))).toString('base64');
     export const chromium={launch:async()=>({close:async()=>{},newPage:async()=>{
       let errors,frames=0;
@@ -37,6 +37,7 @@ test('failed exports preserve the previous delivery and successful exports publi
           frames++;
           if(frames===5&&process.env.RENDER_FAILURE==='frame')throw new Error('Injected frame failure');
           if(frames===5&&process.env.RENDER_FAILURE==='browser')errors(new Error('Injected browser failure'));
+          if(frames===5&&process.env.RENDER_FAILURE==='changed')await appendFile(new URL('../../src/scenes.js',import.meta.url),'\\n// changed during render\\n');
           return process.env.RENDER_FAILURE==='encoder'?'not a PNG':png;
         }};
     }})};
@@ -50,13 +51,13 @@ test('failed exports preserve the previous delivery and successful exports publi
   const render=(failure,entry=path.join(root,'tools/render.mjs'))=>spawnSync(process.execPath,
     entry===cli?[cli,'render','--project',root]:[entry],
     {cwd:root,encoding:'utf8',windowsHide:true,env:{...process.env,RENDER_FAILURE:failure},timeout:30000});
-  for(const failure of ['frame','browser','encoder','media']) {
+  for(const failure of ['frame','browser','encoder','media','changed']) {
     await t.test(failure,async()=>{
       project.width=failure==='media'?64:32;project.height=project.width;
       await writeFile(path.join(root,'project.json'),JSON.stringify(project));
       const result=render(failure);
       assert.equal(result.status,1,result.stderr);
-      assert.match(result.stderr,failure==='media'?/does not match/:failure==='encoder'?/FFmpeg|PNG|png|Invalid/:/Injected/);
+      assert.match(result.stderr,failure==='changed'?/inputs changed/:failure==='media'?/does not match/:failure==='encoder'?/FFmpeg|PNG|png|Invalid/:/Injected/);
       assert.deepEqual(await readFile(video),previousVideo);
       assert.equal(await readFile(report,'utf8'),previousReport);
       assert.ok(!(await readdir(out)).some(name=>name.includes('.tmp')));
@@ -68,5 +69,7 @@ test('failed exports preserve the previous delivery and successful exports publi
   const saved=JSON.parse(await readFile(report,'utf8'));
   assert.equal(saved.full_decode,'passed');assert.equal(saved.frames,4);assert.equal(saved.has_audio,false);
   assert.deepEqual(saved.browser_errors,[]);assert.equal(probe(video).streams[0].width,32);
+  assert.equal(saved.video_sha256.length,64);assert.equal(saved.project_snapshot.project.width,32);
+  assert.ok(saved.project_snapshot.inputs.some(input=>input.file==='src/scenes.js'&&input.text));
   assert.ok(!(await readdir(out)).some(name=>name.includes('.tmp')));
 });

@@ -4,8 +4,10 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { localFile, outputFile, probe } from '../runtime/project.mjs';
 import { newFile } from './media.mjs';
+import { projectFile, readJson } from './files.mjs';
+import { regionBounds, insidePolygon, point } from '../runtime/sprites.mjs';
 
-export function inspectPixels(pixels, width, height, columns, rows, threshold = 180) {
+export function inspectPixels(pixels, width, height, columns, rows, threshold = 180, layout = {}) {
   for (const [name, value] of Object.entries({ columns, rows }))
     if (!Number.isInteger(value) || value < 1)
       throw new Error(`${name} must be a positive integer`);
@@ -13,6 +15,8 @@ export function inspectPixels(pixels, width, height, columns, rows, threshold = 
   if (!Number.isInteger(threshold) || threshold < 0 || threshold > 254)
     throw new Error('alpha-threshold must be an integer from 0 to 254');
   if (pixels.length !== width * height * 4) throw new Error('Incomplete RGBA image');
+  if (layout.frames && (!Array.isArray(layout.frames) || layout.frames.length !== columns * rows))
+    throw new Error('Layout frames must match the grid count');
   let clear = 0;
   for (let i = 3; i < pixels.length; i += 4) if (pixels[i] === 0) clear++;
   const frames = [];
@@ -21,34 +25,67 @@ export function inspectPixels(pixels, width, height, columns, rows, threshold = 
     const y = Math.floor((Math.floor(i / columns) * height) / rows);
     const right = Math.floor((((i % columns) + 1) * width) / columns);
     const bottom = Math.floor(((Math.floor(i / columns) + 1) * height) / rows);
-    let x0 = right,
-      y0 = bottom,
+    const supplied = layout.frames?.[i] ?? {};
+    const region = regionBounds(
+      supplied,
+      supplied.polygon && !supplied.region ? undefined : [x, y, right - x, bottom - y],
+      width,
+      height,
+    );
+    const [rx, ry, rw, rh] = region;
+    let x0 = width,
+      y0 = height,
       x1 = -1,
       y1 = -1;
-    for (let yy = y; yy < bottom; yy++)
-      for (let xx = x; xx < right; xx++) {
+    const boundary = { left: 0, right: 0, top: 0, bottom: 0 };
+    for (let yy = Math.floor(ry); yy < Math.ceil(ry + rh); yy++)
+      for (let xx = Math.floor(rx); xx < Math.ceil(rx + rw); xx++) {
+        if (
+          xx + 0.5 < rx ||
+          xx + 0.5 >= rx + rw ||
+          yy + 0.5 < ry ||
+          yy + 0.5 >= ry + rh ||
+          !insidePolygon(xx + 0.5, yy + 0.5, supplied.polygon)
+        )
+          continue;
         if (pixels[(yy * width + xx) * 4 + 3] <= threshold) continue;
         x0 = Math.min(x0, xx);
         y0 = Math.min(y0, yy);
         x1 = Math.max(x1, xx);
         y1 = Math.max(y1, yy);
+        if (xx === Math.floor(rx)) boundary.left++;
+        if (xx === Math.ceil(rx + rw) - 1) boundary.right++;
+        if (yy === Math.floor(ry)) boundary.top++;
+        if (yy === Math.ceil(ry + rh) - 1) boundary.bottom++;
       }
     const empty = x1 < 0;
     frames.push({
       cell: [x, y, right - x, bottom - y],
+      region,
+      ...(supplied.polygon ? { polygon: supplied.polygon } : {}),
       empty,
       box: empty ? null : [x0, y0, x1 - x0 + 1, y1 - y0 + 1],
-      anchor: empty ? null : [(x0 + x1) / 2, y1],
+      anchor: supplied.anchor ? point(supplied.anchor) : empty ? null : [(x0 + x1) / 2, y1],
+      anchors: Object.fromEntries(
+        Object.entries(supplied.anchors ?? {}).map(([name, value]) => [name, point(value)]),
+      ),
+      anchor_origin: supplied.anchor ? 'explicit' : 'candidate',
+      region_origin: supplied.region || supplied.polygon ? 'explicit' : 'grid',
+      boundary_occupancy: boundary,
     });
   }
+  const referenceHeight = layout.reference_height ?? frames.find((f) => !f.empty)?.box[3] ?? null;
+  if (referenceHeight !== null && (!Number.isFinite(referenceHeight) || referenceHeight <= 0))
+    throw new Error('reference_height must be positive');
   return {
+    schema_version: 1,
     width,
     height,
     columns,
     rows,
     alpha_threshold: threshold,
     alpha_clear_fraction: clear / (width * height),
-    reference_height: frames.find((f) => !f.empty)?.box[3] ?? null,
+    reference_height: referenceHeight,
     frames,
     limitation:
       'Boxes and bottom-center anchors are candidates in source-image coordinates, not detected feet/hands or verified contact. Inspect and calibrate per pose; choose a shared reference scale for the intended subject.',
@@ -58,7 +95,7 @@ export function inspectPixels(pixels, width, height, columns, rows, threshold = 
 export async function inspectAtlas(directory, values) {
   if (!values.input) throw new Error('atlas requires --input');
   const root = await realpath(directory);
-  const file = await realpath(localFile(root, values.input));
+  const file = await projectFile(root, values.input);
   const relative = path.relative(root, file);
   if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative))
     throw new Error('Input leaves project');
@@ -66,6 +103,14 @@ export async function inspectAtlas(directory, values) {
   if (path.extname(out).toLowerCase() !== '.json')
     throw new Error('Atlas report output must be .json');
   newFile(out);
+  const layout = values.layout ? await readJson(await projectFile(root, values.layout)) : {};
+  for (const key of ['columns', 'rows'])
+    if (
+      values[key] !== undefined &&
+      layout[key] !== undefined &&
+      Number(values[key]) !== layout[key]
+    )
+      throw new Error(`${key} conflicts with the layout`);
   const image = probe(file).streams.find((stream) => stream.codec_type === 'video');
   if (!image) throw new Error('Input has no readable image');
   const decoded = spawnSync(
@@ -84,9 +129,10 @@ export async function inspectAtlas(directory, values) {
       decoded.stdout,
       image.width,
       image.height,
-      Number(values.columns),
-      Number(values.rows),
+      Number(values.columns ?? layout.columns),
+      Number(values.rows ?? layout.rows),
       Number(values['alpha-threshold'] ?? 180),
+      layout,
     ),
   };
   await writeFile(out, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
@@ -95,6 +141,9 @@ export async function inspectAtlas(directory, values) {
     frames: report.frames.length,
     empty_cells: report.frames.filter((frame) => frame.empty).length,
     alpha_clear_fraction: report.alpha_clear_fraction,
+    boundary_frames: report.frames.flatMap((frame, index) =>
+      Object.values(frame.boundary_occupancy).some(Boolean) ? [index] : [],
+    ),
     limitation: report.limitation,
   };
 }

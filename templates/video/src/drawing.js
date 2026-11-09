@@ -1,3 +1,4 @@
+export { createAtlas, drawSprite, frameAt, valueAt } from '../tools/sprites.mjs';
 export const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 export const ease = (x) => 1 - (1 - clamp(x)) ** 3;
 export const lerp = (a, b, t) => a + (b - a) * t;

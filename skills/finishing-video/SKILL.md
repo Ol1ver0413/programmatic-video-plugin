@@ -11,6 +11,8 @@ description: 在视频准备正式交付，或需要整理本版反馈、制作�
 
 用 `programmatic-video render --project "<project>"` 导出完整视频，读取报告并按 [reviewing-video](../reviewing-video/SKILL.md) 检查实际编码成片、音频和字幕。核对脚本中必须出现的内容；小样只证明其覆盖范围，检查工具不判断用户满意。
 
+用 `programmatic-video validate --project "<project>" --input output/video.mp4` 检查实际编码文件；需要保持已认可的音轨或 sidecar 时加 --reference-audio/--reference-captions。读取失败报告并修复，不用一次性 finalize 脚本重新实现媒体核验。用户要求的字幕或其他交付缺口应尽早明确输入与交付范围，不能因允许导出而自动视为取消。
+
 交付真实成片、字幕（如有）、可编辑工程和必要的审查证据。说明哪些已验证、哪些只是抽样、是否还有未解决问题；没有用户反馈就记录尚无反馈。需要 HTML 交接页时，复用工程内的交付、素材和环境信息，不另维护一套版本与镜头常量。
 
 ## 收尾输入
@@ -27,6 +29,8 @@ description: 在视频准备正式交付，或需要整理本版反馈、制作�
   "preferences": []
 }
 ```
+
+使用了独立审片任务时，在输入增加 `reviewTask: "output/qa/本次目录/review-task.json"`。交付前对完整视频审查；CLI 会要求任务 reviewed、工程与导出对应且视频在 deliverables 中，不能用只审一段的小样代替全片。审片任务和记录自动生成，project.json 仍是唯一持续维护的工程描述。
 
 style 是实际风格案例，不代表长期喜好。反馈写用户真实表达；lessons 写经过实践的经验，保留“哪项决定→观察到什么→下次适用条件”，不要只堆完成事项。后续反馈到来时沿用本工程补充，不把最初的“尚无反馈”当成永久结论。关键事件理解错误、动作演出不足、素材不合格与导出问题分开记录，便于下次知道该改哪一层。
 

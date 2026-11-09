@@ -30,10 +30,11 @@ function city(c, t, w, h, variant) {
   line(c, 0, 145, w, 145, '#bba677', 1);
   box(c, 0, 153, w, 8, '#0b131f');
 }
-function person(c, x, y, { stride = 0, punch = 0, knee = 0, lean = 0 } = {}) {
+function person(c, x, y, { stride = 0, punch = 0, knee = 0, lean = 0 } = {}, params = {}) {
   c.save();
-  c.translate(x, y);
+  c.translate(x + (params.offsetX ?? 0), y + (params.offsetY ?? 0));
   c.rotate(lean);
+  c.scale(params.actorScale ?? 1, params.actorScale ?? 1);
   const hip = -11 - knee * 5,
     shoulder = -31 - knee * 5;
   line(c, -4, hip, -6 - stride * 8, -1, '#20334a', 5);
@@ -75,7 +76,7 @@ export function drawScene({ ctx: c, scene, time: t, local, progress: u, width: w
   if (scene.id === 'run') {
     const x = lerp(38, 175, ease(u));
     box(c, x - 17, 150, 34, 3, '#080f1a66');
-    person(c, x, 150, { stride: Math.sin(local * 14), lean: 0.07 });
+    person(c, x, 150, { stride: Math.sin(local * 14), lean: 0.07 }, scene.params);
     for (let i = 0; i < 7; i++)
       box(c, 30 + ((((i * 49 - t * 28) % 330) + 330) % 330), 151, 12, 1, '#9bb6a877');
     box(c, 227, 70, 9, 75, '#ba9164');
@@ -84,11 +85,17 @@ export function drawScene({ ctx: c, scene, time: t, local, progress: u, width: w
   } else if (scene.id === 'gate') {
     const hit = clamp((u - 0.32) / 0.14),
       open = ease((u - 0.47) / 0.43);
-    person(c, 178 + open * 18, 150, {
-      punch: u < 0.32 ? -u * 0.9 : hit,
-      lean: hit * 0.05,
-      knee: (1 - hit) * u,
-    });
+    person(
+      c,
+      178 + open * 18,
+      150,
+      {
+        punch: u < 0.32 ? -u * 0.9 : hit,
+        lean: hit * 0.05,
+        knee: (1 - hit) * u,
+      },
+      scene.params,
+    );
     c.save();
     c.translate(223, 74);
     c.rotate(-open * 1.3);
@@ -106,11 +113,17 @@ export function drawScene({ ctx: c, scene, time: t, local, progress: u, width: w
       y = 150 - Math.sin(flight * Math.PI) * 64;
     const crouch = u < 0.18 ? u / 0.18 : u > 0.79 ? (1 - clamp((u - 0.79) / 0.21)) * 0.8 : 0;
     box(c, x - 14, 150, 28, 2, '#080f1a55');
-    person(c, x, y, {
-      stride: flight > 0 && flight < 1 ? -0.5 : 0,
-      knee: crouch,
-      punch: flight > 0 && flight < 1 ? 0.3 : 0,
-    });
+    person(
+      c,
+      x,
+      y,
+      {
+        stride: flight > 0 && flight < 1 ? -0.5 : 0,
+        knee: crouch,
+        punch: flight > 0 && flight < 1 ? 0.3 : 0,
+      },
+      scene.params,
+    );
     if (u > 0.79) dust(c, 258, 147, (u - 0.79) / 0.21);
     box(c, 281, 100, 2, 45, '#c7b17b');
     box(c, 283, 100, 22, 13, '#d26363');

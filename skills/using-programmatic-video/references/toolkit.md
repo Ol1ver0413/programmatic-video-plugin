@@ -12,15 +12,17 @@ Node.js 20+，从源码执行 `npm install --global .` 安装 `programmatic-vide
 | --- | --- |
 | init | 创建独立工程，支持 --audio、--duration 或 --demo |
 | context | 读取需求、计划、进度、复盘、素材清单和相关记忆 |
+| project | 从项目统一的 project.json 定位时间/场景，查询代码与素材，微调已声明参数；--input 查询导出版本 |
+| review | 准备通用与项目专项审片任务，记录单个 reviewer 的结构化结果及复查状态 |
 | checkpoint | 保存 --stage 与 --note，重开已完成工程也用此命令 |
 | audio | 按 --start、--duration 裁切音频到 --out WAV |
 | audio --mode locate / verify | 估计参考片段在音源的位置，或比较编码与参考音轨；默认裁切方式保持兼容 |
-| atlas | 检查图集分格、透明度与每格边界，保存可校准的源坐标候选挂点 |
-| captions | 将 SRT/JSON 按 --offset、--duration 转为片内字幕 JSON |
-| validate | 检查配置、资产、镜头覆盖、字幕和音频；可用 --playback 检查源播放器 |
+| atlas | 分析图集；--layout 指定实际区域/挂点，输出公共绘制器可读取的描述 |
+| captions | SRT/JSON/LRC 按 --offset、--duration 或 --map 转为字幕 JSON |
+| validate | 工程检查；--playback 检查源播放器；--input 检查编码媒体及可选音轨/字幕回归 |
 | preview | 启动预览服务，可用 --port；音频或独立时钟驱动播放 |
 | render | 完整导出、镜头样帧或指定时间范围的动态小样 |
-| frames | 按镜头或指定时刻取帧，生成带时间标注的 PNG 总览及报告 |
+| frames | 按镜头/时刻取帧及分页总览；--map 沿用项目时间，--resume 恢复同一份证据 |
 | finish | 保存交付小结、实际风格与明确偏好，最后标记完成 |
 | memory / remember | 读取记录，或以 --evidence、--confirmed 更新明确长期偏好 |
 | doctor | 检查 Node/FFmpeg/ffprobe，提示浏览器配置 |
@@ -37,6 +39,8 @@ init 不覆盖已有目录、不自动安装依赖。无声默认8秒，--durati
 
 ## 先看动态小样与动作证据
 
+需要 LRC/时间映射、图集校准接入、抽帧恢复或成片回归时，按需读 [可复用媒体工具链](reusable-tools.md)，其中有可直接执行的 CLI 与数据约定。
+
 ```sh
 programmatic-video render --project "<project>" --scene gate
 programmatic-video render --project "<project>" --start 1 --duration 1.5 --out output/previews/action.mp4
@@ -49,9 +53,9 @@ scene 与 start/duration 二选一。小样保持项目的全局时间，角色�
 
 范围小样、指定 --out 的自定义输出，以及 --no-stills 导出，由插件内置的 Canvas 采样器运行现有播放器，要求工程暴露 `window.__ready`、`window.__render(time)` 和 `#film` 画布；它们不会执行工程自定义的额外后处理。没有范围、--out 与 --no-stills 参数的完整导出仍委派工程自己的 tools/render.mjs，旧工程不会因插件升级而被覆盖。
 
-frames 默认从每个镜头取3个内部时刻；--samples 为每镜1–32个；--times 为最多256个明确时刻，不能与 scene/samples 混用。没有 --input 时采样当前源工程；有 --input 时由 FFmpeg 从项目内编码视频提取，时间按该输入视频的秒数解释。局部编码小样请用明确的 --times，避免把片内局部时间当成整片时间。
+frames 默认从每个镜头取3个内部时刻；--samples 为每镜1–32个；--times 为最多256个明确时刻，不能与 scene/samples 混用。没有 --input 时采样源工程；有 --input 时从编码视频取帧，默认按该视频秒数解释。--map 转换时间；--report 同时使用绑定导出版本的场景与时间，两者互斥。
 
-frames 输出各帧 PNG、带时间标注的 contact-sheet.png 和 frames.json。默认在 output/qa/ 新建独立检查目录；--out 必须是项目内相对目录且为空。报告区分 Canvas 源工程与编码视频证据，不自动判定自然动作或用户满意。PNG 总览也需要项目的 Playwright 和浏览器。
+frames 输出原尺寸 PNG、分页 contact-sheet*.png 和逐步保存的 frames.json。默认在 output/qa/ 新建目录；普通 --out 要求为空，--resume 可在源、时间和映射未变时续做。报告区分 Canvas 与编码证据，不自动判断自然动作或用户满意；总览需要项目的 Playwright 和浏览器。
 
 ## 通用播放器检查
 
@@ -72,7 +76,7 @@ programmatic-video render --project "<project>" --stills
 programmatic-video render --project "<project>"
 ```
 
-audio 输出 WAV 和相邻 .source.json；captions 接受 SRT 或 [{start,end,text}] JSON，筛选、平移并裁到片内范围，均拒绝覆盖已有文件。把工程配置指向生成文件。CLI 不生成歌词或逐字语音时间戳。
+audio 输出 WAV 和带 time_mapping 的相邻 .source.json；captions 接受 SRT、LRC 或 [{start,end,text}] JSON，按选段或 --map 转换时间，均拒绝覆盖已有文件。把工程配置指向生成文件。CLI 不生成歌词或逐字语音时间戳。
 
 audio:null 表示无声；captions:null，或它指向内容为 [] 的 JSON 文件，表示无字幕。burnCaptions:false 输出干净画面，同时保留独立 SRT。范围小样中的烧录字幕仍按全片时间取用；output/captions.srt 是全片字幕，需要单独小样 SRT 时再用 captions 裁取。
 
@@ -88,13 +92,15 @@ programmatic-video audio --mode locate --input source.m4a --reference reference.
 programmatic-video audio --mode verify --input output/video.mp4 --reference assets/audio/clip.wav --out output/qa/audio-v1.json
 ```
 
-atlas 使用 FFmpeg 解码首帧 RGBA，按分格报告透明像素比例、空格、可见区域与底部中心候选点；默认报告在 output/qa/。允许不透明画风与未填满的格子，它们是检查结果。候选点不是自动识别出的脚、手或道具接触点；使用时仍需视觉校准，选择统一参考比例。不得据此宣称动作自然、脸像本人或素材已获认可。
+atlas 解码首帧 RGBA，报告透明度、区域与候选点；--layout 可提供实际矩形/多边形、命名挂点及统一参考高度。schema_version:1 输出可由新工程公共绘制器直接读取。候选点不是脚/手检测，边界提示与显式坐标均需视觉核对；详见可复用工具链。
 
 audio 默认继续裁切；locate 与 verify 是可选分析模式，需要 Python 3 + NumPy，可通过 PROGRAMMATIC_VIDEO_PYTHON 指定已有解释器。其它 CLI 能力不依赖 Python，不自动安装依赖。locate 在参考片段的多个窗口计算归一化波形相关，默认窗口按实际参考长度选取；可用 --windows 1,8,16 与 --duration 4 显式指定。报告包含各窗口相关度、候选起点与偏移分歧，需结合试听和实际内容选择，不自动采用候选。
 
 verify 比较零偏移下重叠部分的波形，报告相关度、覆盖率、时长差和双方 SHA256；它不搜索偏移，也不把“短片段很像”说成整条音轨通过。两种分析都不是逐字/音素对齐。无变化的信号、无效窗口及已有输出会报错；输出必须为 .json。任意相关度阈值与采样数不代表通用验收标准。
 
 ## 可编辑工程
+
+每个项目持续维护一份 project.json，制作、定位和审片共用；[工程描述](project-description.md) 说明 scene.source/assets/params、review.requirements 和对应视频的查询。CLI 自动在导出报告内保留本版描述/指纹，不另维护平行配置。独立审片遵循 [通用加专项检查约定](../../reviewing-video/references/review-contract.md)，保持一个制作 agent 与一个 reviewer。
 
 brief.md 保存意图与确认，plan.md 保存脚本、分镜及验证顺序；progress.md/workflow.json 保存阶段与进度；review.md 保存各版交付与反馈；assets/sources.json 登记来源与采用情况。src/ 是作品代码，tools/ 是随工程复制的工具，output/ 保存成片、小样、字幕和报告。
 

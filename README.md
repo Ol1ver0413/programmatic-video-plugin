@@ -20,6 +20,10 @@ The plugin includes an entry skill, four creative stages, a reusable review skil
 
 Shared commands live in `cli/`, launchers in `bin/`, project templates in `templates/`, hooks in `hooks/`, and workflow skills in `skills/`.
 
+The CLI reuses audio and subtitle timing, sprite calibration, scene exports, resumable frame sampling and encoded-media checks across projects.
+
+Each project keeps one `project.json` for its timeline, assets, scene code, editable parameters and review requirements. One producing agent and one reviewer use it to make targeted revisions.
+
 ## Get started
 
 Install Node.js 20+, FFmpeg with ffprobe, and Chrome, Edge or Playwright Chromium.

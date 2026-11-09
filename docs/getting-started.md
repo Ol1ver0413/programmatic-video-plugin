@@ -12,6 +12,7 @@ cli/lib/                       公共操作与状态逻辑
 cli/runtime/                   可复制到作品 tools/ 的运行工具
 templates/video/               初始化模板、播放器、字体与许可
 hooks/                         原生事件配置和完成回调
+agents/video-reviewer.md        单个独立审片角色，供支持委派的宿主使用
 skills/<name>/                 工作流说明与该 skill 专属资源
 tests/                         功能与集成验证
 ```
@@ -62,6 +63,7 @@ programmatic-video validate --project .
 programmatic-video render --project . --scene gate
 programmatic-video frames --project . --scene gate --samples 8
 programmatic-video render --project .
+programmatic-video validate --project . --input output/video.mp4
 programmatic-video frames --project . --input output/video.mp4 --times 0.2,2.2,4.2
 programmatic-video preview --project . --port 4174
 ```
@@ -81,3 +83,7 @@ skill 用 skill-creator 的 quick_validate.py 检查。自动检查与采样不�
 分发包验证：运行 `npm pack` 后将 tarball 解压，用 `node tests/package-smoke.mjs <解压后的 package 目录>` 检查从包内启动 CLI、初始化模板、独立工程运行工具、忽略规则与 SessionStart。它不借用源码中的工具实现。
 
 公共播放检查回归：`node tests/playback-smoke.mjs <已有 Playwright 的 index.mjs 路径>`，覆盖无声非像素、短字幕、等长/较长音轨、缺失结束事件、错误字幕、静态失败报告与无自动样帧的实际导出。
+
+可复用工具链回归：`node tests/toolchain-smoke.mjs <已有 Playwright 的 index.mjs 路径>`，用自制媒体验证44张全高清抽帧分页、失败后恢复、显式图集直接用于真实 Canvas、时间映射以及小样字幕/成片检查。固定操作统一通过 CLI 调用；输入输出与示例见 [可复用工具链](../skills/using-programmatic-video/references/reusable-tools.md)。
+
+工程与审片回归：`node tests/project-review-smoke.mjs <已有 Playwright 的 index.mjs 路径>`，验证同一个 project.json 的参数实际改变视频、旧导出仍能定位旧配置、编码帧沿用导出版本，以及通用检查与用户专项要求合并。设置 KEEP_PROJECT_REVIEW_FIXTURE=1 可保留仓库 .work/ 下的自制小样，供单个宿主 reviewer 实际审查；这不是独立 eval 框架。

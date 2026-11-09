@@ -1,72 +1,178 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { writeFile, realpath, stat, readdir } from 'node:fs/promises';
 import { randomUUID, createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { validateProject, localFile, outputFile, probe } from '../runtime/project.mjs';
+import { validateProject, outputFile, probe } from '../runtime/project.mjs';
 import { selectTimes } from '../runtime/sampling.mjs';
+import { readTimeMapping, mapTime } from '../runtime/timing.mjs';
 import { startServer } from '../runtime/server.mjs';
 import { openBrowser, loadProjectPage, captureFrame } from '../runtime/browser.mjs';
-import { readJson } from './files.mjs';
+import { readJson, saveJson, fileHash, projectFile } from './files.mjs';
+import { makeSheets } from './frame-sheets.mjs';
+import { projectInputs } from '../runtime/manifest.mjs';
+import { readExport } from './project-export.mjs';
+
+async function canvasFingerprint(root, project) {
+  const inputs = await projectInputs(root, project);
+  const hash = createHash('sha256');
+  hash.update(inputs.fingerprint);
+  for (const file of [import.meta.url, new URL('../runtime/browser.mjs', import.meta.url)])
+    hash.update(await fileHash(fileURLToPath(file)));
+  return { sha256: hash.digest('hex'), tracked_inputs: inputs.inputs.map((item) => item.file) };
+}
 
 export async function collectFrames(directory, options = {}) {
   const root = await realpath(directory),
     started = performance.now();
-  let project;
-  if (options.input) project = await readJson(path.join(root, 'project.json'));
+  if (options.resume && !options.out)
+    throw new Error('--resume requires the original --out directory');
+  if (options.map && !options.input) throw new Error('--map applies to encoded --input samples');
+  if (options.report && (!options.input || options.map))
+    throw new Error('--report needs encoded --input and cannot be combined with --map');
+  let project, exported;
+  if (options.report) {
+    exported = await readExport(root, options.input, options.report);
+    if (exported.binding !== 'exported')
+      throw new Error('Frame sampling needs a bound export report');
+    project = exported.snapshot.project;
+  } else if (options.input) project = await readJson(path.join(root, 'project.json'));
   else {
     const checked = await validateProject(root, { probeAudio: false });
     if (checked.errors.length) throw new Error(checked.errors.join('\n'));
     project = checked.project;
   }
-  let input, source, inputDuration, inputSize;
+  const mapping = options.map
+    ? readTimeMapping(await readJson(await projectFile(root, options.map)))
+    : exported?.time_mapping
+      ? readTimeMapping(exported.time_mapping)
+      : null;
+  let input, source, inputDuration;
   if (options.input) {
-    input = await realpath(localFile(root, options.input));
-    const relative = path.relative(root, input);
-    if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative))
-      throw new Error('Input leaves project');
+    input = await projectFile(root, options.input);
     const info = probe(input),
       video = info.streams.find((stream) => stream.codec_type === 'video');
     inputDuration = Number(info.format.duration);
     if (!video || !Number.isFinite(inputDuration) || inputDuration <= 0)
       throw new Error('Input must be a video with a readable duration');
-    inputSize = { width: video.width, height: video.height };
     const attributes = await stat(input);
     source = {
       file: options.input,
       size: attributes.size,
       modified_at: attributes.mtime.toISOString(),
+      sha256: await fileHash(input),
     };
-  }
-  const times = selectTimes(
-    input && options.times !== undefined ? { ...project, duration: inputDuration } : project,
+  } else source = { file: 'project.json', ...(await canvasFingerprint(root, project)) };
+  if (
+    input &&
+    !mapping &&
+    options.times === undefined &&
+    Math.abs(inputDuration - project.duration) > 1 / project.fps + 0.025
+  )
+    throw new Error(
+      'Encoded clip length differs from the project; use --map or explicit input-video --times',
+    );
+  let times = selectTimes(
+    input && options.times !== undefined && !mapping
+      ? { ...project, duration: inputDuration }
+      : project,
     options,
   );
-  if (input && times.some((time) => time >= inputDuration))
-    throw new Error(
-      'Sample times must be inside the encoded video; use --times in input-video seconds for partial clips',
-    );
+  const inputTime = (time) => (mapping ? mapTime(time, mapping) : time);
+  const fits = (time) =>
+    (!mapping || (time >= mapping.source_start_seconds && time < mapping.source_end_seconds)) &&
+    inputTime(time) >= 0 &&
+    inputTime(time) < inputDuration;
+  if (input) {
+    if (mapping && options.times === undefined) times = times.filter(fits);
+    if (!times.length || times.some((time) => !fits(time)))
+      throw new Error(
+        'Sample times must be inside the encoded video; use --map for project times or --times in input-video seconds',
+      );
+  }
   const relativeOutput =
     options.out ||
     `output/qa/frames-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 6)}`;
   const reportFile = await outputFile(root, relativeOutput + '/frames.json'),
     out = path.dirname(reportFile);
-  // outputFile creates the parent; require an empty destination to preserve prior evidence.
-  if ((await readdir(out)).length)
-    throw new Error('Frame output directory must be empty; choose a new --out directory');
-  let browser, server;
+  const kind = input ? 'encoded-video-samples' : 'canvas-runtime-samples';
+  const timeBasis = input && !mapping ? 'input-video-seconds' : 'project-seconds';
+  const plan = {
+    kind,
+    time_basis: timeBasis,
+    source_sha256: source.sha256,
+    times,
+    time_mapping: mapping,
+  };
+  let previous;
+  if (options.resume) {
+    previous = await readJson(reportFile);
+    if (JSON.stringify(previous.plan) !== JSON.stringify(plan))
+      throw new Error(
+        'Cannot resume: source, requested times or time mapping changed; choose a new --out',
+      );
+  } else if ((await readdir(out)).length)
+    throw new Error(
+      'Frame output directory must be empty; choose a new --out directory or --resume',
+    );
+  const state = {
+    schema_version: 1,
+    kind,
+    time_basis: timeBasis,
+    source,
+    ...(mapping ? { time_mapping: mapping } : {}),
+    plan,
+    status: 'extracting',
+    limitation:
+      'Samples and image differences do not establish natural motion, full-frame coverage or user acceptance.',
+    browser_errors: [],
+    frames: [],
+    contact_sheets: [],
+  };
+  let browser,
+    server,
+    errors = [],
+    cancelled = false;
+  const interrupt = () => {
+    cancelled = true;
+  };
+  const checkCancelled = () => {
+    if (cancelled || options.signal?.aborted)
+      throw new Error('Frame collection cancelled; use --resume to continue');
+  };
+  const persist = async () => {
+    state.sample_count = state.frames.length;
+    state.unique_sample_images = new Set(state.frames.map((frame) => frame.sha256)).size;
+    state.elapsed_seconds = Math.round(performance.now() - started) / 1000;
+    await saveJson(reportFile, state);
+  };
+  process.once('SIGINT', interrupt);
   try {
-    browser = await openBrowser(root);
-    let page,
-      errors = [];
-    if (input) page = await browser.newPage({ viewport: inputSize });
-    else {
+    for (const record of previous?.frames ?? []) {
+      const index = times.indexOf(record.time_requested);
+      if (index < 0 || record.file !== `${String(index + 1).padStart(3, '0')}.png`)
+        throw new Error('Resume manifest contains an unexpected frame');
+      try {
+        const cached = await projectFile(root, relativeOutput + '/' + record.file);
+        if ((await fileHash(cached)) !== record.sha256)
+          throw new Error('Cached frame changed; choose a new --out');
+        state.frames.push(record);
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+    await persist();
+    let page;
+    if (!input) {
       const startedServer = await startServer(0, root);
       server = startedServer.server;
+      browser = await openBrowser(root);
       ({ page, errors } = await loadProjectPage(browser, startedServer.url, project));
     }
-    const records = [],
-      images = [];
     for (const [index, time] of times.entries()) {
+      checkCancelled();
+      const file = `${String(index + 1).padStart(3, '0')}.png`;
+      if (state.frames.some((frame) => frame.file === file)) continue;
       let bytes;
       if (input) {
         const captured = spawnSync(
@@ -76,7 +182,7 @@ export async function collectFrames(directory, options = {}) {
             '-loglevel',
             'error',
             '-ss',
-            String(time),
+            String(inputTime(time)),
             '-i',
             input,
             '-frames:v',
@@ -87,7 +193,7 @@ export async function collectFrames(directory, options = {}) {
             'png',
             'pipe:1',
           ],
-          { windowsHide: true, maxBuffer: 32 * 1024 * 1024 },
+          { windowsHide: true, timeout: 30000, maxBuffer: 32 * 1024 * 1024 },
         );
         if (captured.error || captured.status !== 0 || !captured.stdout?.length)
           throw new Error(
@@ -97,81 +203,64 @@ export async function collectFrames(directory, options = {}) {
           );
         bytes = captured.stdout;
       } else bytes = await captureFrame(page, time);
-      const file = `${String(index + 1).padStart(3, '0')}.png`;
       await writeFile(await outputFile(root, relativeOutput + '/' + file), bytes);
-      records.push({
+      state.frames.push({
         file,
         time_requested: time,
-        scene_from_project: input
-          ? undefined
-          : project.scenes.find((scene) => time >= scene.start && time < scene.end)?.id,
+        ...(mapping ? { time_input: inputTime(time) } : {}),
+        ...(input && !mapping
+          ? {}
+          : {
+              scene_from_project: project.scenes.find(
+                (scene) => time >= scene.start && time < scene.end,
+              )?.id,
+            }),
         sha256: createHash('sha256').update(bytes).digest('hex'),
       });
-      images.push(bytes.toString('base64'));
+      state.frames.sort((a, b) => a.time_requested - b.time_requested);
+      await persist();
+      console.error(`Frames: ${state.frames.length}/${times.length} extracted`);
     }
-    const sheet = await page.evaluate(
-      async ({ images, records }) => {
-        const width = 280,
-          height = 158,
-          label = 28,
-          gap = 8,
-          columns = Math.min(4, images.length),
-          rows = Math.ceil(images.length / columns);
-        const canvas = document.createElement('canvas');
-        canvas.width = columns * (width + gap) + gap;
-        canvas.height = rows * (height + label + gap) + gap;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#131722';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '14px monospace';
-        ctx.textBaseline = 'top';
-        for (let i = 0; i < images.length; i++) {
-          const image = new Image();
-          image.src = 'data:image/png;base64,' + images[i];
-          await image.decode();
-          const x = gap + (i % columns) * (width + gap),
-            y = gap + Math.floor(i / columns) * (height + label + gap),
-            scale = Math.min(width / image.width, height / image.height);
-          ctx.drawImage(
-            image,
-            x + (width - image.width * scale) / 2,
-            y + (height - image.height * scale) / 2,
-            image.width * scale,
-            image.height * scale,
-          );
-          ctx.fillStyle = '#eef1f7';
-          ctx.fillText(`#${i + 1}  ${records[i].time_requested.toFixed(3)}s`, x, y + height + 5);
-        }
-        return canvas.toDataURL('image/png').split(',')[1];
-      },
-      { images, records },
-    );
+    checkCancelled();
     if (errors.length) throw new Error(errors.join('\n'));
-    await writeFile(
-      await outputFile(root, relativeOutput + '/contact-sheet.png'),
-      Buffer.from(sheet, 'base64'),
+    state.status = 'assembling';
+    await persist();
+    if (!browser) browser = await openBrowser(root);
+    page ??= await browser.newPage({ viewport: { width: 640, height: 360 } });
+    await makeSheets(
+      page,
+      root,
+      relativeOutput,
+      state.frames,
+      async (pages) => {
+        state.contact_sheets = [...pages];
+        await persist();
+        console.error(`Frames: contact-sheet page ${pages.length}/${Math.ceil(times.length / 16)}`);
+      },
+      checkCancelled,
     );
-    const report = {
-      kind: input ? 'encoded-video-samples' : 'canvas-runtime-samples',
-      time_basis: input ? 'input-video-seconds' : 'project-seconds',
-      source: source || { file: 'project.json' },
-      sample_count: records.length,
-      unique_sample_images: new Set(records.map((record) => record.sha256)).size,
-      limitation:
-        'Samples and image differences do not establish natural motion, full-frame coverage or user acceptance.',
-      browser_errors: errors,
-      elapsed_seconds: Math.round(performance.now() - started) / 1000,
-      frames: records,
-    };
-    await writeFile(reportFile, JSON.stringify(report, null, 2) + '\n');
+    checkCancelled();
+    if (errors.length) throw new Error(errors.join('\n'));
+    state.status = 'complete';
+    await persist();
     return {
       directory: out,
       contactSheet: path.join(out, 'contact-sheet.png'),
+      contactSheets: state.contact_sheets.map((file) => path.join(out, file)),
       report: reportFile,
-      samples: records.length,
-      kind: report.kind,
+      samples: state.frames.length,
+      kind,
     };
+  } catch (error) {
+    if (state.sample_count !== undefined) {
+      state.status = cancelled || options.signal?.aborted ? 'cancelled' : 'failed';
+      state.error = error.message;
+      state.browser_errors = errors;
+      await persist();
+    }
+    throw error;
   } finally {
+    process.removeListener('SIGINT', interrupt);
     if (browser) await browser.close();
     if (server) await new Promise((resolve) => server.close(resolve));
   }

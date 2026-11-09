@@ -34,6 +34,9 @@ try {
   assert.ok(guide.includes('cli/programmatic-video.mjs'));
   await assert.rejects(stat(path.join(parent, 'unused-memory')), { code: 'ENOENT' });
   await stat(path.join(root, 'cli/lib/audio-audit.py'));
+  await stat(path.join(root, 'agents/video-reviewer.md'));
+  await stat(path.join(project, 'tools/manifest.mjs'));
+  assert.equal(run('cli/programmatic-video.mjs', ['project', '--project', project, '--time', '0.1']).status, 0);
   console.log(JSON.stringify({ archive_version: expected, canonical_and_legacy_entries: true, unrelated_cwd: true, standalone_project_runtime: true, packaged_ignore_rules: true, session_hook: true, optional_audio_helper: true }));
 } finally {
   assert.equal(path.dirname(parent), os.tmpdir());

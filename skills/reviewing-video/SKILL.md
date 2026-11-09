@@ -7,6 +7,8 @@ description: 在需要检查视频动态小样、角色动作与道具接触、�
 
 先确定本轮要验证的问题和范围：一段小样、改过的镜头，还是整片交付。读取相关需求、分镜和制作记录即可；明确受委派时直接审查，不重新启动脑暴。命令参数见 [工具约定](../using-programmatic-video/references/toolkit.md)。
 
+每个项目的 project.json 是统一描述。先维护来自本次用户的 review.requirements，再用 `review --project ... --input ...` 生成通用检查加专项要求的任务。具体参数、结果格式与修复闭环见 [审片约定](references/review-contract.md)。
+
 ## 获取对应证据
 
 标准播放器运行检查用 `validate --playback`，覆盖镜头、字幕内部边界、相同时间重复渲染、播放/暂停/拖动与全段结束；报告在 `output/qa/playback.json`。它不检查编码视频，也不判断歌词契合或笑点是否成立。
@@ -14,6 +16,8 @@ description: 在需要检查视频动态小样、角色动作与道具接触、�
 代码/资产的小样可以用 `frames --scene "<id>" --samples 8` 生成总览，再看指定时刻与局部动态预览。接触事件前、中、后用 `--times` 精确选取，不把均匀抽样当成已检查整个动作。
 
 检查最终交付时，实际播放/听音，并用 `frames --input output/video.mp4` 从编码成片取样。报告注明证据来自 Canvas 源工程还是编码视频；新代码的截图不能证明旧成片已更新。记录检查范围和无法验证的内容。
+
+编码技术检查统一用 `validate --input output/video.mp4`；需保留音轨/字幕时提供 --reference-audio/--reference-captions。小样用 --map 沿用导出时间，并指定已裁好的 --captions-file。用现有 CLI 和检查数据代替逐版复制媒体核验脚本；用法见 [工具链](../using-programmatic-video/references/reusable-tools.md)。sidecar 通过不证明烧录文字正确，仍需看实际编码画面。
 
 ## 三类结论分别记录
 
@@ -23,9 +27,9 @@ description: 在需要检查视频动态小样、角色动作与道具接触、�
 
 反馈写到本项目的 `output/qa/review-notes.md` 或约定的审查文件。每个问题给出时间/镜头、可见现象、证据文件、影响、建议修改方向与置信程度；拿不准的列为待确认，避免泛泛说“更流畅、更精致”。已通过的具体范围也记录，不编造全片通过。
 
-## 可选的独立审片
+## 单个独立 reviewer
 
-复杂动作或重要版本需要独立判断，且宿主支持委派时，可以让一个审片 agent 按 [审片任务说明](references/reviewer-brief.md) 检查。简单素材由主 agent 使用本 skill 即可。
+代表性小样批次、重要修改和最终交付时，宿主支持委派则使用同一个 [video-reviewer 角色](../../agents/video-reviewer.md)，按 [任务说明](references/reviewer-brief.md) 独立审片。检查可合并成一批，保持一个制作 agent 与一个 reviewer；无委派能力时由主 agent 按相同约定自审并注明。CLI 不自动启动模型。
 
 主 agent 统一制作、裁剪、整合与修改；审片 agent 读取需求、工程和真实产物，只在指定检查目录输出证据与反馈，不修改源代码、资产、音频、字幕、完成状态或个人记忆。不按镜头拆出许多 agent。
 
