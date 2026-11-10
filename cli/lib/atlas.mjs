@@ -1,11 +1,30 @@
 import path from 'node:path';
-import { realpath, readFile, writeFile } from 'node:fs/promises';
+import { realpath, writeFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { localFile, outputFile, probe } from '../runtime/project.mjs';
 import { newFile } from './media.mjs';
-import { projectFile, readJson } from './files.mjs';
+import { projectFile, readJson, fileHash } from './files.mjs';
 import { regionBounds, insidePolygon, point } from '../runtime/sprites.mjs';
+import { packAtlasPixels, encodeAtlasPng } from './atlas-pack.mjs';
+import { applyProjectPatch } from './project-operations.mjs';
+
+export async function atlasRequestKey(root, values) {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        input: values.input,
+        source: await fileHash(await projectFile(root, values.input)),
+        layout: values.layout ? await fileHash(await projectFile(root, values.layout)) : null,
+        columns: values.columns ?? null,
+        rows: values.rows ?? null,
+        threshold: values['alpha-threshold'] ?? 180,
+        pack: values.pack ?? null,
+        padding: values.padding ?? 2,
+      }),
+    )
+    .digest('hex');
+}
 
 export function inspectPixels(pixels, width, height, columns, rows, threshold = 180, layout = {}) {
   for (const [name, value] of Object.entries({ columns, rows }))
@@ -96,6 +115,8 @@ export async function inspectAtlas(directory, values) {
   if (!values.input) throw new Error('atlas requires --input');
   const root = await realpath(directory);
   const file = await projectFile(root, values.input);
+  const requestKey = await atlasRequestKey(root, values);
+  const sourceHash = await fileHash(file);
   const relative = path.relative(root, file);
   if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative))
     throw new Error('Input leaves project');
@@ -103,6 +124,13 @@ export async function inspectAtlas(directory, values) {
   if (path.extname(out).toLowerCase() !== '.json')
     throw new Error('Atlas report output must be .json');
   newFile(out);
+  const packedFile = values.pack ? await outputFile(root, values.pack) : null;
+  if (packedFile) {
+    if (path.extname(packedFile).toLowerCase() !== '.png')
+      throw new Error('Packed atlas output must be .png');
+    newFile(packedFile);
+  }
+  if (values.padding !== undefined && !packedFile) throw new Error('--padding requires --pack');
   const layout = values.layout ? await readJson(await projectFile(root, values.layout)) : {};
   for (const key of ['columns', 'rows'])
     if (
@@ -116,15 +144,14 @@ export async function inspectAtlas(directory, values) {
   const decoded = spawnSync(
     'ffmpeg',
     ['-v', 'error', '-i', file, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1'],
-    { windowsHide: true, maxBuffer: 256 * 1024 * 1024 },
+    { windowsHide: true, timeout: 30000, maxBuffer: 256 * 1024 * 1024 },
   );
   if (decoded.error) throw decoded.error;
   if (decoded.status !== 0) throw new Error(decoded.stderr.toString() || 'Image decoding failed');
-  const report = {
+  let report = {
     input: relative.replaceAll('\\', '/'),
-    sha256: createHash('sha256')
-      .update(await readFile(file))
-      .digest('hex'),
+    sha256: sourceHash,
+    request_key: requestKey,
     ...inspectPixels(
       decoded.stdout,
       image.width,
@@ -135,7 +162,33 @@ export async function inspectAtlas(directory, values) {
       layout,
     ),
   };
-  await writeFile(out, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
+  const created = [];
+  let registration;
+  try {
+    if ((await atlasRequestKey(root, values)) !== requestKey)
+      throw new Error('Atlas inputs changed during preparation');
+    if (packedFile) {
+      const packed = packAtlasPixels(decoded.stdout, report, {
+        padding: Number(values.padding ?? 2),
+      });
+      const png = encodeAtlasPng(packed.pixels, packed.report.width, packed.report.height);
+      report = {
+        ...packed.report,
+        source: { input: report.input, sha256: report.sha256 },
+        input: path.relative(root, packedFile).replaceAll('\\', '/'),
+        sha256: createHash('sha256').update(png).digest('hex'),
+      };
+      await writeFile(packedFile, png, { flag: 'wx' });
+      created.push(packedFile);
+    }
+    await writeFile(out, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
+    created.push(out);
+    if (values.register)
+      registration = await applyProjectPatch(root, { assets: { [values.register]: report.input } });
+  } catch (error) {
+    for (const file of created) await rm(file, { force: true });
+    throw error;
+  }
   return {
     report: path.relative(root, out).replaceAll('\\', '/'),
     frames: report.frames.length,
@@ -145,5 +198,7 @@ export async function inspectAtlas(directory, values) {
       Object.values(frame.boundary_occupancy).some(Boolean) ? [index] : [],
     ),
     limitation: report.limitation,
+    ...(packedFile ? { image: report.input, packing: report.packing } : {}),
+    ...(registration ? { registered: values.register, changes: registration } : {}),
   };
 }

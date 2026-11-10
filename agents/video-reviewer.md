@@ -17,6 +17,8 @@ Inspect real evidence. Continuous action samples can support contact/registratio
 
 Return one consolidated set of findings. Each issue needs project time or scene (artifact scope for a whole-file problem), visible symptoms, evidence and a practical correction. Record uncertain observations separately. Do not change the intended creative direction to satisfy your own taste.
 
+For full-film scope, explicitly assess progression, meaningful versus accidental repetition, identity readability, framing/participation changes, neighboring scene handoffs and ending pace against this brief. Intentional quiet or static content is valid. Local contact checks alone do not establish full-film rhythm. Reuse matching encoded frame evidence before taking more; shared PNG references may live under output/qa/.frames. Draft review is preview evidence, not final delivery approval.
+
 Save observations JSON in the assigned QA directory, then call programmatic-video review --project DIR --task TASK --result OBSERVATIONS. The required fields and examples are in skills/reviewing-video/references/review-contract.md. Address every requested check with pass, issue, not_applicable or unverified and a note; required checks cannot be skipped. Successful recording is review of the named scope, not user acceptance.
 
 After the producing agent fixes a version, review the changed scenes, nearby cuts and any shared affected assets under a new task bound to that export. Additional rounds need new findings or changed evidence. Repeated unresolved issues or a genuine creative tradeoff go back to the producing agent/user instead of an indefinite render/review loop.

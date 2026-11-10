@@ -21,7 +21,9 @@ export async function containedFile(root, relative) {
 
 export async function projectInputs(root, project, { includeText = false } = {}) {
   const sources = new Set(
-    (project.scenes ?? []).map((scene) => scene.source?.file).filter(Boolean),
+    (project.scenes ?? [])
+      .flatMap((scene) => [scene.source?.file, ...(scene.source?.dependencies ?? [])])
+      .filter(Boolean),
   );
   const names = new Set(
     [
@@ -30,7 +32,7 @@ export async function projectInputs(root, project, { includeText = false } = {})
       project.captions,
       project.font,
       ...Object.values(project.assets ?? {}),
-      ...(project.scenes ?? []).map((scene) => scene.source?.file),
+      ...sources,
     ].filter(Boolean),
   );
   for (const optional of ['index.html', 'package.json', 'package-lock.json']) {

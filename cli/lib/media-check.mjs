@@ -45,6 +45,12 @@ export async function validateMedia(directory, values) {
       if (exported.binding !== 'exported')
         throw new Error('Media checks need a bound export report');
       project = exported.snapshot.project;
+      if (exported.render_spec) {
+        const { width, height, fps } = exported.render_spec;
+        if (![width, height, fps].every((n) => Number.isInteger(n) && n > 0) || fps !== project.fps)
+          throw new Error('Export has an invalid render specification');
+        project = { ...project, width, height };
+      }
       cues = exported.snapshot.captions;
       report.export_binding = {
         video_sha256: exported.video_sha256,

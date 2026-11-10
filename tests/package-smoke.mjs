@@ -4,6 +4,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { readFile, stat, mkdtemp, rm, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 if (!process.argv[2]) throw new Error('Usage: node tests/package-smoke.mjs <extracted-package-directory>');
 const root = path.resolve(process.argv[2]);
@@ -36,8 +38,13 @@ try {
   await stat(path.join(root, 'cli/lib/audio-audit.py'));
   await stat(path.join(root, 'agents/video-reviewer.md'));
   await stat(path.join(project, 'tools/manifest.mjs'));
+  await stat(path.join(project, 'tools/animation.mjs'));
+  await stat(path.join(project, 'tools/render-core.mjs'));
+  const apiPath = createRequire(path.join(root, 'package.json')).resolve('programmatic-video-plugin');
+  const api = await import(pathToFileURL(apiPath));
+  for (const name of ['applyProjectPatch', 'renderProject', 'renderIncremental', 'prepareAtlases', 'cameraAt', 'collectFrames']) assert.equal(typeof api[name], 'function');
   assert.equal(run('cli/programmatic-video.mjs', ['project', '--project', project, '--time', '0.1']).status, 0);
-  console.log(JSON.stringify({ archive_version: expected, canonical_and_legacy_entries: true, unrelated_cwd: true, standalone_project_runtime: true, packaged_ignore_rules: true, session_hook: true, optional_audio_helper: true }));
+  console.log(JSON.stringify({ archive_version: expected, canonical_and_legacy_entries: true, public_api: true, unrelated_cwd: true, standalone_project_runtime: true, packaged_ignore_rules: true, session_hook: true, optional_audio_helper: true }));
 } finally {
   assert.equal(path.dirname(parent), os.tmpdir());
   assert.ok(path.basename(parent).startsWith('programmatic-video-package-'));

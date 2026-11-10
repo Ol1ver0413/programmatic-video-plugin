@@ -29,6 +29,8 @@ description: 在需要检查视频动态小样、角色动作与道具接触、�
 
 ## 单个独立 reviewer
 
+完整视频审查明确覆盖整体推进、重复事件、角色辨识、景别与参与方式、相邻场景交接和尾段信息空窗，并以本片方向为标准；慢节奏、静态和留白可以是选择。局部接触或字幕通过不能扩大为整片节奏通过。优先共享同版本frames证据，缺什么补什么；按需用--cache/--width，细节保留原尺寸。参数见[制作工具](../using-programmatic-video/references/production-tools.md)。
+
 代表性小样批次、重要修改和最终交付时，宿主支持委派则使用同一个 [video-reviewer 角色](../../agents/video-reviewer.md)，按 [任务说明](references/reviewer-brief.md) 独立审片。检查可合并成一批，保持一个制作 agent 与一个 reviewer；无委派能力时由主 agent 按相同约定自审并注明。CLI 不自动启动模型。
 
 主 agent 统一制作、裁剪、整合与修改；审片 agent 读取需求、工程和真实产物，只在指定检查目录输出证据与反馈，不修改源代码、资产、音频、字幕、完成状态或个人记忆。不按镜头拆出许多 agent。

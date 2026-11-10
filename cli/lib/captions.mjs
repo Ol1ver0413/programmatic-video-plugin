@@ -73,3 +73,36 @@ export function clipCaptions(cues, offset, duration) {
       text: cue.text,
     }));
 }
+
+export function alignCaptionText(cues, text) {
+  const normalize = (value) =>
+    value
+      .normalize('NFKC')
+      .toLocaleLowerCase('en')
+      .replace(/[^\p{L}\p{N}]/gu, '');
+  const lines = text
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) throw new Error('Supplied caption text is empty');
+  let cursor = 0;
+  const matched = [],
+    unmatched = [],
+    used = new Set();
+  for (const cue of cues) {
+    const key = normalize(cue.text);
+    const index = lines.findIndex((line, i) => i >= cursor && normalize(line) === key);
+    if (!key || index < 0) unmatched.push({ start: cue.start, end: cue.end, text: cue.text });
+    else {
+      matched.push({ ...cue, text: lines[index] });
+      cursor = index + 1;
+      used.add(index);
+    }
+  }
+  return {
+    cues: matched,
+    unmatched,
+    unused_lines: lines.flatMap((line, i) => (used.has(i) ? [] : [{ line: i + 1, text: line }])),
+  };
+}

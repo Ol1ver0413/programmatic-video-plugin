@@ -9,6 +9,8 @@ description: 在视频准备正式交付，或需要整理本版反馈、制作�
 
 ## 检查实际交付
 
+draft只作预演；正式交付使用final规格。检查实际render_spec与对应报告，不能用草稿审片结束正式交付。增量合成也要检查完整编码与镜头接缝；缓存命中只说明技术复用。
+
 用 `programmatic-video render --project "<project>"` 导出完整视频，读取报告并按 [reviewing-video](../reviewing-video/SKILL.md) 检查实际编码成片、音频和字幕。核对脚本中必须出现的内容；小样只证明其覆盖范围，检查工具不判断用户满意。
 
 用 `programmatic-video validate --project "<project>" --input output/video.mp4` 检查实际编码文件；需要保持已认可的音轨或 sidecar 时加 --reference-audio/--reference-captions。读取失败报告并修复，不用一次性 finalize 脚本重新实现媒体核验。用户要求的字幕或其他交付缺口应尽早明确输入与交付范围，不能因允许导出而自动视为取消。

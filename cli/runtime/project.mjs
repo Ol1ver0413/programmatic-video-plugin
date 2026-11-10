@@ -104,9 +104,9 @@ export function toSrt(cues) {
     .map((cue, i) => `${i + 1}\n${stamp(cue.start)} --> ${stamp(cue.end)}\n${cue.text}\n`)
     .join('\n');
 }
-export async function validateProject(directory, { probeAudio = true } = {}) {
+export async function validateProject(directory, { probeAudio = true, project: candidate } = {}) {
   const root = await realpath(directory),
-    project = parseJson(await readFile(path.join(root, 'project.json'), 'utf8'));
+    project = candidate ?? parseJson(await readFile(path.join(root, 'project.json'), 'utf8'));
   const errors = [],
     warnings = [];
   errors.push(...checkProjectLinks(project));
@@ -154,7 +154,12 @@ export async function validateProject(directory, { probeAudio = true } = {}) {
     ...Object.values(project.assets || {}),
     ...(project.font ? [project.font] : []),
     ...(Array.isArray(project.scenes) ? project.scenes : []).flatMap((scene) =>
-      scene?.source?.file ? [scene.source.file] : [],
+      scene?.source?.file
+        ? [
+            scene.source.file,
+            ...(Array.isArray(scene.source.dependencies) ? scene.source.dependencies : []),
+          ]
+        : [],
     ),
     ...(Array.isArray(project.review?.requirements) ? project.review.requirements : []).flatMap(
       (check) => (check?.reference ? [check.reference] : []),

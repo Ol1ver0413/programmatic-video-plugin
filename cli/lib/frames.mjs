@@ -12,6 +12,7 @@ import { readJson, saveJson, fileHash, projectFile } from './files.mjs';
 import { makeSheets } from './frame-sheets.mjs';
 import { projectInputs } from '../runtime/manifest.mjs';
 import { readExport } from './project-export.mjs';
+import { FrameCache } from './frame-cache.mjs';
 
 async function canvasFingerprint(root, project) {
   const inputs = await projectInputs(root, project);
@@ -25,6 +26,9 @@ async function canvasFingerprint(root, project) {
 export async function collectFrames(directory, options = {}) {
   const root = await realpath(directory),
     started = performance.now();
+  const width = options.width === undefined ? undefined : Number(options.width);
+  if (width !== undefined && (!Number.isInteger(width) || width < 1 || width > 16384))
+    throw new Error('Sample width must be an integer from 1 to 16384');
   if (options.resume && !options.out)
     throw new Error('--resume requires the original --out directory');
   if (options.map && !options.input) throw new Error('--map applies to encoded --input samples');
@@ -103,7 +107,18 @@ export async function collectFrames(directory, options = {}) {
     source_sha256: source.sha256,
     times,
     time_mapping: mapping,
+    ...(width !== undefined ? { width } : {}),
+    ...(options.cache ? { shared_cache: true } : {}),
   };
+  const cache = options.cache
+    ? await new FrameCache(root, {
+        kind,
+        source: source.sha256,
+        width: width ?? null,
+        sampling: project.pixelArt === false ? 'smooth' : 'nearest',
+        sampler: await fileHash(fileURLToPath(import.meta.url)),
+      }).load()
+    : null;
   let previous;
   if (options.resume) {
     previous = await readJson(reportFile);
@@ -127,6 +142,8 @@ export async function collectFrames(directory, options = {}) {
       'Samples and image differences do not establish natural motion, full-frame coverage or user acceptance.',
     browser_errors: [],
     frames: [],
+    captured_frames: 0,
+    reused_frames: 0,
     contact_sheets: [],
   };
   let browser,
@@ -150,7 +167,14 @@ export async function collectFrames(directory, options = {}) {
   try {
     for (const record of previous?.frames ?? []) {
       const index = times.indexOf(record.time_requested);
-      if (index < 0 || record.file !== `${String(index + 1).padStart(3, '0')}.png`)
+      if (
+        index < 0 ||
+        (record.cache_key
+          ? !cache ||
+            record.cache_key !==
+              cache.key(input ? inputTime(record.time_requested) : record.time_requested)
+          : record.file !== `${String(index + 1).padStart(3, '0')}.png`)
+      )
         throw new Error('Resume manifest contains an unexpected frame');
       try {
         const cached = await projectFile(root, relativeOutput + '/' + record.file);
@@ -163,18 +187,15 @@ export async function collectFrames(directory, options = {}) {
     }
     await persist();
     let page;
-    if (!input) {
-      const startedServer = await startServer(0, root);
-      server = startedServer.server;
-      browser = await openBrowser(root);
-      ({ page, errors } = await loadProjectPage(browser, startedServer.url, project));
-    }
     for (const [index, time] of times.entries()) {
       checkCancelled();
-      const file = `${String(index + 1).padStart(3, '0')}.png`;
-      if (state.frames.some((frame) => frame.file === file)) continue;
+      let file = `${String(index + 1).padStart(3, '0')}.png`;
+      if (state.frames.some((frame) => frame.time_requested === time)) continue;
+      const key = cache?.key(input ? inputTime(time) : time);
+      let cached = key ? await cache.get(key) : null;
       let bytes;
-      if (input) {
+      if (cached) state.reused_frames++;
+      else if (input) {
         const captured = spawnSync(
           'ffmpeg',
           [
@@ -191,6 +212,12 @@ export async function collectFrames(directory, options = {}) {
             'image2pipe',
             '-c:v',
             'png',
+            ...(width
+              ? [
+                  '-vf',
+                  `scale=w=min(iw\\,${width}):h=-1:flags=${project.pixelArt === false ? 'bicubic' : 'neighbor'}`,
+                ]
+              : []),
             'pipe:1',
           ],
           { windowsHide: true, timeout: 30000, maxBuffer: 32 * 1024 * 1024 },
@@ -202,8 +229,21 @@ export async function collectFrames(directory, options = {}) {
               'Encoded frame extraction failed',
           );
         bytes = captured.stdout;
-      } else bytes = await captureFrame(page, time);
-      await writeFile(await outputFile(root, relativeOutput + '/' + file), bytes);
+      } else {
+        if (!page) {
+          const startedServer = await startServer(0, root);
+          server = startedServer.server;
+          browser = await openBrowser(root);
+          ({ page, errors } = await loadProjectPage(browser, startedServer.url, project));
+        }
+        bytes = await captureFrame(page, time, { width });
+      }
+      if (!cached) {
+        state.captured_frames++;
+        if (cache) cached = await cache.put(key, bytes);
+        else await writeFile(await outputFile(root, relativeOutput + '/' + file), bytes);
+      }
+      if (cached) file = cache.relativeFile(out, cached);
       state.frames.push({
         file,
         time_requested: time,
@@ -215,14 +255,22 @@ export async function collectFrames(directory, options = {}) {
                 (scene) => time >= scene.start && time < scene.end,
               )?.id,
             }),
-        sha256: createHash('sha256').update(bytes).digest('hex'),
+        sha256: cached?.sha256 ?? createHash('sha256').update(bytes).digest('hex'),
+        ...(key ? { cache_key: key } : {}),
       });
       state.frames.sort((a, b) => a.time_requested - b.time_requested);
       await persist();
       console.error(`Frames: ${state.frames.length}/${times.length} extracted`);
     }
     checkCancelled();
+    if (
+      input
+        ? (await fileHash(input)) !== source.sha256
+        : (await canvasFingerprint(root, project)).sha256 !== source.sha256
+    )
+      throw new Error('Frame source changed during collection; collect a new version');
     if (errors.length) throw new Error(errors.join('\n'));
+    if (cache) await cache.save();
     state.status = 'assembling';
     await persist();
     if (!browser) browser = await openBrowser(root);
@@ -250,6 +298,8 @@ export async function collectFrames(directory, options = {}) {
       report: reportFile,
       samples: state.frames.length,
       kind,
+      captured_frames: state.captured_frames,
+      reused_frames: state.reused_frames,
     };
   } catch (error) {
     if (state.sample_count !== undefined) {

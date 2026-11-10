@@ -3,8 +3,26 @@ import { parseJson, validateProject } from '../runtime/project.mjs';
 import { checkProjectLinks, locateScenes } from '../runtime/project-links.mjs';
 import { saveJson } from './files.mjs';
 import { readExport } from './project-export.mjs';
+import { applyProjectPatch, readPatch, projectFiles } from './project-operations.mjs';
 
 export async function inspectProject(directory, values) {
+  if (values.patch || values.files) {
+    if (
+      ['input', 'report', 'time', 'scene', 'set', 'value'].some(
+        (key) => values[key] !== undefined,
+      ) ||
+      (values.patch && values.files)
+    )
+      throw new Error('Choose project query, --patch or --files');
+    if (values.files) {
+      if (values['dry-run']) throw new Error('--dry-run requires --patch');
+      return projectFiles(directory);
+    }
+    return applyProjectPatch(directory, await readPatch(directory, values.patch), {
+      dryRun: Boolean(values['dry-run']),
+    });
+  }
+  if (values['dry-run']) throw new Error('--dry-run requires --patch');
   if (values.input) {
     if (values.set !== undefined || values.value !== undefined)
       throw new Error('Export snapshots are read-only; edit the current project without --input');

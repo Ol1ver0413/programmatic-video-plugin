@@ -1,5 +1,5 @@
 import { drawScene } from './scenes.js';
-import { clamp } from './drawing.js';
+import { clamp, cameraAt, withCamera, sceneClock } from './drawing.js';
 
 const canvas = document.querySelector('#film'),
   screen = canvas.getContext('2d', { alpha: false });
@@ -80,16 +80,26 @@ try {
     ctx.imageSmoothingEnabled = project.pixelArt === false;
     ctx.fillStyle = '#101b2c';
     ctx.fillRect(0, 0, w, h);
-    drawScene({
-      ctx,
-      scene,
-      time: t,
-      local: t - scene.start,
-      progress: (t - scene.start) / (scene.end - scene.start),
-      width: w,
-      height: h,
-      assets,
-    });
+    const clock = sceneClock(scene, t);
+    const draw = () =>
+      drawScene({
+        ctx,
+        scene,
+        time: t,
+        local: clock.local,
+        progress: clock.progress,
+        width: w,
+        height: h,
+        assets,
+      });
+    if (scene.params?.camera)
+      withCamera(
+        ctx,
+        cameraAt(clock.local, scene.params.camera, { width: w, height: h }),
+        { width: w, height: h },
+        draw,
+      );
+    else draw();
     ctx.restore();
     const cue =
       project.burnCaptions === false ? undefined : captions.find((c) => t >= c.start && t < c.end);
@@ -174,6 +184,7 @@ try {
     requestAnimationFrame(tick);
   }
   window.__render = render;
+  window.__frameCanvas = world;
   window.__project = project;
   window.__captions = captions;
   window.__playback = {

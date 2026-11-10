@@ -2,6 +2,8 @@
 
 ## 入口与能力范围
 
+批量编辑、全长低成本预演、增量生成、素材打包、镜头/动作API和共享证据的接口见[可复用制作工具](production-tools.md)。它们扩展现有命令，保持每项目一份活动project.json。
+
 Node.js 20+，从源码执行 `npm install --global .` 安装 `programmatic-video`，旧的 `pixel-video` 作为命令别名保留。未全局安装时运行 `node "<plugin-root>/cli/programmatic-video.mjs"`。插件没有运行时 npm 依赖；作品工程安装 Playwright，图像、音频处理和导出使用浏览器及 FFmpeg/ffprobe。
 
 内置运行时是 Canvas：以 `drawScene({ctx,scene,time,local,progress,width,height,assets})` 编排图片、图形、字幕和动画。外部视频混剪、透明视频、自动语音识别/强制对齐、自动循环接缝与任意比例自动重构图未内置。更名不表示这些能力已经实现；有额外需求时先验证宿主工具方案。
@@ -11,13 +13,13 @@ Node.js 20+，从源码执行 `npm install --global .` 安装 `programmatic-vide
 | 命令 | 用途 |
 | --- | --- |
 | init | 创建独立工程，支持 --audio、--duration 或 --demo |
-| context | 读取需求、计划、进度、复盘、素材清单和相关记忆 |
+| context | 读取需求、计划、进度、复盘、素材清单和相关记忆；--summary按需恢复 |
 | project | 从项目统一的 project.json 定位时间/场景，查询代码与素材，微调已声明参数；--input 查询导出版本 |
 | review | 准备通用与项目专项审片任务，记录单个 reviewer 的结构化结果及复查状态 |
 | checkpoint | 保存 --stage 与 --note，重开已完成工程也用此命令 |
 | audio | 按 --start、--duration 裁切音频到 --out WAV |
 | audio --mode locate / verify | 估计参考片段在音源的位置，或比较编码与参考音轨；默认裁切方式保持兼容 |
-| atlas | 分析图集；--layout 指定实际区域/挂点，输出公共绘制器可读取的描述 |
+| atlas | 分析/打包图集、登记素材；--batch/--resume复用批量准备 |
 | captions | SRT/JSON/LRC 按 --offset、--duration 或 --map 转为字幕 JSON |
 | validate | 工程检查；--playback 检查源播放器；--input 检查编码媒体及可选音轨/字幕回归 |
 | preview | 启动预览服务，可用 --port；音频或独立时钟驱动播放 |

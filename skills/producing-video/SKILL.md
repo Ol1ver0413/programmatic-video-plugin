@@ -11,6 +11,8 @@ description: 在已有视频脚本和分镜，需要准备资产、编写场景�
 
 ## 先验证关键表达，再扩展制作
 
+长片先用已有素材或占位画面做低成本全长预演，检查整体推进与尾段，再扩展昂贵资产。关键短段用于验证难点和相邻场景交接；先确认形式，不把某个精致短段直接视为整片节奏已验证。新建、小样、局改与交付的具体配方见[制作工作流](references/production-workflows.md)。
+
 先实现计划里的代表性场景，产出短动态小样：
 
 ```sh
@@ -32,6 +34,8 @@ programmatic-video render --project "<project>" --scene "<scene-id>"
 在工程场景模块中编排动画，以 `project.json` 登记时间和资源。按片内时间确定画面，随机效果固定种子；每镜用局部时间表达动作。背景、镜头和字幕都围绕本片意图，不用持续震屏或平移代替缺失的事件。准确人名、数字和标志文字用代码绘制。
 
 ## 修改范围与效率
+
+优先用[可复用制作工具](../using-programmatic-video/references/production-tools.md)完成patch、draft、atlas批处理和共享取帧。确定性隔离场景可显式使用增量渲染；不自动改旧工程。镜头、人物、道具与挂点共用变换，字幕独立；复用底层绘制能力，按本片内容设计不同事件表达。
 
 固定操作统一调用 CLI。图集先用 atlas 分析，再按需要用 `--layout` 校准实际区域、共同参考高度与命名挂点，输出可被公共绘制器读取的描述。LRC 和音频/小样时间映射用 captions；编码小样取帧可用 `frames --input ... --map ...`。失败后以相同参数和 `--out ... --resume` 续做原证据，换版本则新建目录。完整用法按需读 [可复用媒体工具链](../using-programmatic-video/references/reusable-tools.md)，避免重写检查与时间换算脚本。
 

@@ -9,7 +9,7 @@ description: 在用户要用代码制作、续做或修改视频、动画、配�
 
 ## 开始或恢复
 
-新作品参考 `programmatic-video memory`；接手已有工程或上下文压缩后运行 `programmatic-video context --project "<project>"`。本轮已读且未变化的记录不用每镜重新全量读取。当前要求优先，历史风格只是案例；项目内的临时反馈不自动变成永久习惯。
+新作品参考 `programmatic-video memory`；接手已有工程或上下文压缩后先运行 `programmatic-video context --project "<project>" --summary`，再按需读取当前brief/plan或定位场景。本轮已读且未变化的记录不用每镜重新全量读取。当前要求优先，历史风格只是案例；项目内的临时反馈不自动变成永久习惯。
 
 和用户对齐用途、内容、声音、画幅与观看感受。pixel 是可选画风；音乐、旁白、讲解、氛围循环和动作片段的节奏不同。先查 [工具约定](references/toolkit.md) 确认实际能力，再承诺输出格式或外部视频剪辑方案。
 
@@ -22,6 +22,8 @@ description: 在用户要用代码制作、续做或修改视频、动画、配�
 | [finishing-video](../finishing-video/SKILL.md) | 交付本版、记录反馈与经验、保存有依据的偏好 |
 
 ## 工程与工具
+
+批量工程编辑、draft/final预演、素材打包、镜头/动作API和证据复用见[可复用制作工具](references/production-tools.md)。CLI与JS API共用实现；新增能力随插件分发，不在作品内再复制一套临时工具。
 
 - 一条视频一个可写目录；`brief.md`、`plan.md`、素材、代码、进度、预览和成片放在一起，安装目录保持只读。
 - 每个项目持续维护一份 project.json，登记场景时间、素材引用、代码位置、实际可调参数和用户专项检查；CLI、制作与审片都从这里读取。结构及按时间定位/微调见 [工程描述](references/project-description.md)，导出快照由工具自动保存。

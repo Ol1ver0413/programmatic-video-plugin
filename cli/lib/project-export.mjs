@@ -48,6 +48,7 @@ export async function readExport(directory, input, reportPath) {
     video_sha256: sha256,
     binding: bound ? 'exported' : 'unverified',
     snapshot,
+    render_spec: bound ? (report.render_spec ?? null) : null,
     time_mapping: report?.time_mapping ?? null,
     export_report: reportFile ? { file: candidate, sha256: await fileHash(reportFile) } : null,
     source_matches_current: bound && currentMatches,

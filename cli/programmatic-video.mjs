@@ -5,17 +5,18 @@ import { parseArgs } from 'node:util';
 import { spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { run, checkAndWrite } from './runtime/project.mjs';
-import { selectRange } from './runtime/sampling.mjs';
 import { context, checkpoint, finish, remember, readMemory } from './lib/workflow.mjs';
 import { readJson } from './lib/files.mjs';
 import { createProject } from './lib/project-init.mjs';
 import { processAudio, convertCaptions, number } from './lib/media.mjs';
 import { collectFrames } from './lib/frames.mjs';
 import { checkPlayback } from './lib/playback.mjs';
-import { inspectAtlas } from './lib/atlas.mjs';
+import { processAtlas } from './lib/atlas-batch.mjs';
 import { validateMedia } from './lib/media-check.mjs';
 import { inspectProject } from './lib/project-edit.mjs';
 import { reviewVideo } from './lib/review.mjs';
+import { renderProject } from './runtime/render-core.mjs';
+import { renderIncremental } from './runtime/render-incremental.mjs';
 
 export { parseCaptions, clipCaptions } from './lib/media.mjs';
 
@@ -24,22 +25,25 @@ const projectRoot = (values) => path.resolve(values.project || '.');
 const help = `programmatic-video — editable video projects, media tools and personal memory
 
   init --out DIR [--title TEXT] [--audio FILE | --demo | --duration SECONDS]
-  context --project DIR [--memory-dir DIR]
+  context --project DIR [--memory-dir DIR] [--summary]
   project --project DIR [--time SECONDS | --scene ID] [--set PARAMETER --value JSON | --input VIDEO --report REPORT.json]
+  project --project DIR --patch EDITS.json|- [--dry-run]
+  project --project DIR --files
   review --project DIR --input VIDEO [--report REPORT.json] [--scene ID | --start SECONDS --duration SECONDS] [--out output/qa/DIR]
   review --project DIR --task output/qa/DIR/review-task.json [--result output/qa/DIR/observations.json]
   checkpoint --project DIR --stage STAGE --note TEXT
   preview --project DIR [--port NUMBER]
-  render --project DIR [--stills | --no-stills] [--scene ID | --start SECONDS --duration SECONDS] [--out FILE.mp4]
-  frames --project DIR [--scene ID --samples NUMBER | --times 0.1,0.4,0.8] [--input FILE.mp4 [--map REPORT.json | --report EXPORT.json]] [--out DIR --resume]
+  render --project DIR [--stills | --no-stills] [--scene ID | --start SECONDS --duration SECONDS] [--out FILE.mp4] [--profile draft|final] [--cache | --incremental]
+  frames --project DIR [--scene ID --samples NUMBER | --times 0.1,0.4,0.8] [--input FILE.mp4 [--map REPORT.json | --report EXPORT.json]] [--out DIR --resume] [--cache] [--width PIXELS]
   finish --project DIR --input REVIEW.json [--memory-dir DIR]
   memory [--memory-dir DIR]
   remember --key KEY --value TEXT --evidence TEXT --confirmed [--project DIR] [--memory-dir DIR]
   doctor
-  audio --input FILE --out FILE.wav --start SECONDS --duration SECONDS
+  audio --input FILE --out FILE.wav --start SECONDS --duration SECONDS [--fade-in SECONDS --fade-out SECONDS]
   audio --mode locate|verify --input FILE --reference FILE --out REPORT.json [--windows SECONDS,... --duration SECONDS] [--sample-rate NUMBER]
-  atlas --project DIR --input IMAGE [--columns NUMBER --rows NUMBER | --layout LAYOUT.json] [--alpha-threshold NUMBER] [--out REPORT.json]
-  captions --input FILE.srt|json|lrc --out FILE.json [--offset SECONDS --duration SECONDS | --map REPORT.json]
+  atlas --project DIR --input IMAGE [--columns NUMBER --rows NUMBER | --layout LAYOUT.json] [--alpha-threshold NUMBER] [--out REPORT.json] [--pack IMAGE.png --padding NUMBER] [--register ASSET_ID]
+  atlas --project DIR --batch ITEMS.json|- [--resume]
+  captions --input FILE.srt|json|lrc --out FILE.json [--offset SECONDS --duration SECONDS | --map REPORT.json] [--text USER.txt]
   validate --project DIR [--playback]
   validate --project DIR --input FILE.mp4 [--map REPORT.json | --report EXPORT.json] [--reference-audio FILE --min-correlation NUMBER] [--captions-file FILE --reference-captions FILE] [--out REPORT.json]
 
@@ -83,21 +87,14 @@ async function preview(values) {
 
 async function render(values) {
   if (values.stills && values['no-stills']) throw new Error('Choose --stills or --no-stills');
+  if (values.incremental) return renderIncremental(projectRoot(values), values);
   const root = projectRoot(values),
     args = values.stills ? ['--stills'] : [];
-  const hosted = ['scene', 'start', 'duration', 'out', 'no-stills'].some(
+  const hosted = ['scene', 'start', 'duration', 'out', 'no-stills', 'profile', 'cache'].some(
     (key) => values[key] !== undefined,
   );
-  if (hosted) {
-    selectRange(await readJson(path.join(root, 'project.json')), values);
-    args.push('--project', root);
-    for (const key of ['scene', 'start', 'duration', 'out'])
-      if (values[key] !== undefined) args.push('--' + key, values[key]);
-    if (values['no-stills']) args.push('--no-stills');
-  }
-  const renderer = hosted
-    ? path.join(pluginRoot, 'cli/runtime/render.mjs')
-    : path.join(root, 'tools/render.mjs');
+  if (hosted) return renderProject(root, values);
+  const renderer = path.join(root, 'tools/render.mjs');
   await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [renderer, ...args], {
       cwd: root,
@@ -118,7 +115,18 @@ const commands = {
     run: (values) => reviewVideo(projectRoot(values), values),
   },
   project: {
-    options: ['project', 'time', 'scene', 'set', 'value', 'input', 'report'],
+    options: [
+      'project',
+      'time',
+      'scene',
+      'set',
+      'value',
+      'input',
+      'report',
+      'patch',
+      'dry-run',
+      'files',
+    ],
     project: true,
     run: (values) => inspectProject(projectRoot(values), values),
   },
@@ -128,15 +136,42 @@ const commands = {
     run: (values) => createProject(values, path.join(pluginRoot, 'templates/video')),
   },
   audio: {
-    options: ['input', 'out', 'start', 'duration', 'mode', 'reference', 'windows', 'sample-rate'],
+    options: [
+      'input',
+      'out',
+      'start',
+      'duration',
+      'mode',
+      'reference',
+      'windows',
+      'sample-rate',
+      'fade-in',
+      'fade-out',
+    ],
     run: processAudio,
   },
   atlas: {
-    options: ['project', 'input', 'columns', 'rows', 'layout', 'alpha-threshold', 'out'],
+    options: [
+      'project',
+      'input',
+      'columns',
+      'rows',
+      'layout',
+      'alpha-threshold',
+      'out',
+      'pack',
+      'padding',
+      'register',
+      'batch',
+      'resume',
+    ],
     project: true,
-    run: (values) => inspectAtlas(projectRoot(values), values),
+    run: (values) => processAtlas(projectRoot(values), values),
   },
-  captions: { options: ['input', 'out', 'offset', 'duration', 'map'], run: convertCaptions },
+  captions: {
+    options: ['input', 'out', 'offset', 'duration', 'map', 'text'],
+    run: convertCaptions,
+  },
   validate: {
     options: [
       'project',
@@ -181,9 +216,10 @@ const commands = {
     },
   },
   context: {
-    options: ['project', 'memory-dir'],
+    options: ['project', 'memory-dir', 'summary'],
     project: true,
-    run: (values) => context(projectRoot(values), values['memory-dir']),
+    run: (values) =>
+      context(projectRoot(values), values['memory-dir'], { summary: values.summary }),
   },
   checkpoint: {
     options: ['project', 'stage', 'note'],
@@ -192,12 +228,35 @@ const commands = {
   },
   preview: { options: ['project', 'port'], project: true, run: preview },
   render: {
-    options: ['project', 'stills', 'no-stills', 'scene', 'start', 'duration', 'out'],
+    options: [
+      'project',
+      'stills',
+      'no-stills',
+      'scene',
+      'start',
+      'duration',
+      'out',
+      'profile',
+      'cache',
+      'incremental',
+    ],
     project: true,
     run: render,
   },
   frames: {
-    options: ['project', 'scene', 'times', 'samples', 'input', 'out', 'map', 'report', 'resume'],
+    options: [
+      'project',
+      'scene',
+      'times',
+      'samples',
+      'input',
+      'out',
+      'map',
+      'report',
+      'resume',
+      'cache',
+      'width',
+    ],
     project: true,
     run: (values) => collectFrames(projectRoot(values), values),
   },
@@ -236,6 +295,11 @@ export async function main(argv = process.argv.slice(2)) {
     'no-stills',
     'playback',
     'resume',
+    'summary',
+    'dry-run',
+    'files',
+    'cache',
+    'incremental',
     'help',
     'version',
   ]);

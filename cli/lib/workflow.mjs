@@ -158,16 +158,45 @@ export async function readMemory(directory) {
   }
   return { file, memory };
 }
-export async function context(directory, memoryDir) {
+export async function context(directory, memoryDir, { summary = false } = {}) {
   const root = await projectRoot(directory),
     record = await workflow(root);
   const documents = {};
   for (const name of ['brief.md', 'plan.md', 'progress.md', 'review.md', 'assets/sources.json'])
     documents[name] = await projectDocument(root, name);
   const { file, memory } = await readMemory(projectMemory(record, memoryDir));
+  const manifest = await readJson(path.join(root, 'project.json'));
+  if (summary)
+    for (const [file, contents] of Object.entries(documents))
+      documents[file] = {
+        file,
+        characters: contents?.length ?? 0,
+        ...(file === 'progress.md' ? { latest: contents?.slice(-1400) ?? '' } : {}),
+      };
   return {
     project: root,
-    manifest: await readJson(path.join(root, 'project.json')),
+    manifest: summary
+      ? {
+          title: manifest.title,
+          duration: manifest.duration,
+          fps: manifest.fps,
+          width: manifest.width,
+          height: manifest.height,
+          audio: manifest.audio ?? null,
+          captions: manifest.captions ?? null,
+          asset_count: Object.keys(manifest.assets ?? {}).length,
+          scenes: manifest.scenes.map(({ id, start, end, intent, source }) => ({
+            id,
+            start,
+            end,
+            intent,
+            source,
+          })),
+          requirements: manifest.review?.requirements ?? [],
+          omitted:
+            'Full parameters, asset catalog and historical planning remain in project.json; query project --scene/--time or read the relevant document as needed.',
+        }
+      : manifest,
     workflow: record,
     documents,
     memory: { file, preferences: memory.preferences, videos: memory.videos.slice(-5).reverse() },
@@ -214,6 +243,8 @@ export async function finish(directory, input, memoryDir) {
     const reviewed = await reviewVideo(root, { task: reviewedTask });
     if (reviewed.status !== 'reviewed' || !reviewed.source_matches_current)
       throw new Error('Review is incomplete, needs changes or belongs to an older project version');
+    if (reviewed.render_spec?.profile === 'draft')
+      throw new Error('Draft review cannot close a final delivery; review the final export');
     const duration = (await readJson(path.join(root, 'project.json'))).duration;
     if (reviewed.scope.start > 1e-7 || reviewed.scope.end < duration - 1e-7)
       throw new Error('Final review must cover the full project, not only a sample');

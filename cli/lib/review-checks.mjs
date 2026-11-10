@@ -6,7 +6,7 @@ export const commonChecks = [
   ],
   [
     'content',
-    'Compare visible events and information with the original brief and scene intent.',
+    'Compare visible events and progression with the brief and reviewed scope; assess purposeful versus accidental repetition, information gaps and setup/payoff. Intentional quiet or static content is valid.',
     'visual',
   ],
   [

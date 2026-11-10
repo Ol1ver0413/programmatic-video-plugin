@@ -21,6 +21,12 @@ export function checkProjectLinks(project) {
     )
       errors.push(`Scene ${scene.id}: source needs a file and optional symbol`);
     if (
+      scene.source?.dependencies !== undefined &&
+      (!Array.isArray(scene.source.dependencies) ||
+        scene.source.dependencies.some((file) => !text(file)))
+    )
+      errors.push(`Scene ${scene.id}: source dependencies must be file paths`);
+    if (
       scene.assets !== undefined &&
       (!Array.isArray(scene.assets) ||
         scene.assets.some((key) => !text(key) || !Object.hasOwn(project.assets ?? {}, key)))
@@ -28,7 +34,17 @@ export function checkProjectLinks(project) {
       errors.push(`Scene ${scene.id}: assets must name registered project assets`);
     if (scene.params !== undefined && (!object(scene.params) || !jsonValue(scene.params)))
       errors.push(`Scene ${scene.id}: params must contain finite JSON values`);
+    if (
+      scene.events !== undefined &&
+      (!object(scene.events) ||
+        Object.values(scene.events).some(
+          (at) => !Number.isFinite(at) || at < 0 || at > scene.end - scene.start,
+        ))
+    )
+      errors.push(`Scene ${scene.id}: events must use local seconds inside the scene`);
   }
+  if (project.rendering?.sceneCache !== undefined && project.rendering.sceneCache !== 'isolated')
+    errors.push('rendering.sceneCache must be isolated when specified');
   if (project.review !== undefined && !object(project.review))
     errors.push('review must be an object');
   const requirements = project.review?.requirements;

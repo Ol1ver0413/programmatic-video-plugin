@@ -74,6 +74,10 @@ programmatic-video preview --project . --port 4174
 
 ## 开发检查
 
+本轮制作工具与四种工作配方见[可复用制作工具](../skills/using-programmatic-video/references/production-tools.md)。Node API由包主入口导出，与CLI共用实现；独立工程继续保留自己的运行时副本。
+
+`node tests/production-smoke.mjs <已有 Playwright 的 index.mjs 路径>` 验证真实预演/正式输出、像素取帧等价、单景增量、字幕与音轨修改、共享证据修复和atlas批处理。先在一个测试工程安装渲染依赖，再传入其node_modules/playwright/index.mjs。它使用隔离的自制素材并自动清理，只是媒体回归，不搭建eval/benchmark服务。
+
 仓库运行 `npm install` 安装开发依赖；`npm test` 跑命令、工作流、hook、时间范围与失败保护，`npm run format:check` 检查代码格式。Prettier 是开发依赖，不进入运行时工具链。
 
 真实浏览器与 FFmpeg 的片段和取帧验证：`node tests/preview-smoke.mjs <已有 Playwright 的 index.mjs 路径>`。它创建并清理自己的工程，不修改该依赖所在作品。播放测试还可用 tests/smoke.mjs 与 tests/silent-smoke.mjs；特殊路径与 BOM 使用 tests/resources-smoke.mjs。
