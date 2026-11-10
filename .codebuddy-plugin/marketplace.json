@@ -1,0 +1,13 @@
+{
+  "name": "programmatic-video",
+  "owner": {
+    "name": "Ol1ver0413"
+  },
+  "plugins": [
+    {
+      "name": "programmatic-video",
+      "source": "./",
+      "description": "Editable, code-driven video creation with staged skills and local tools."
+    }
+  ]
+}

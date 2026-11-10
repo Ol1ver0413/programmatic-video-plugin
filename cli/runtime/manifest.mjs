@@ -11,8 +11,9 @@ export async function hashFile(file) {
 }
 
 export async function containedFile(root, relative) {
-  const file = await realpath(localFile(root, relative)),
-    rel = path.relative(root, file);
+  const base = await realpath(root),
+    file = await realpath(localFile(base, relative)),
+    rel = path.relative(base, file);
   if (rel === '..' || rel.startsWith('..' + path.sep) || path.isAbsolute(rel))
     throw new Error('Input leaves project');
   if (!(await stat(file)).isFile()) throw new Error(`Expected a file: ${relative}`);

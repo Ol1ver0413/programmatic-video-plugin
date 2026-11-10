@@ -32,12 +32,13 @@ test('startup, resume and compaction return the same scoped entry guide without 
   await assert.rejects(stat(memory), {code:'ENOENT'});
 });
 
-test('both plugin formats select the shipped hook and every stage reference resolves', async () => {
+test('host manifests stay versioned together and every stage reference resolves', async () => {
   const portable = JSON.parse(await readFile(new URL('../plugin.json', import.meta.url), 'utf8'));
   const codex = JSON.parse(await readFile(new URL('../.codex-plugin/plugin.json', import.meta.url), 'utf8'));
   const claude = JSON.parse(await readFile(new URL('../.claude-plugin/plugin.json', import.meta.url), 'utf8'));
+  const buddy = JSON.parse(await readFile(new URL('../.codebuddy-plugin/plugin.json', import.meta.url), 'utf8'));
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-  for(const manifest of [portable, codex, claude]) assert.equal(manifest.version, pkg.version);
+  for(const manifest of [portable, codex, claude, buddy]) assert.equal(manifest.version, pkg.version);
   assert.equal(portable.extensions['com.openai'].hooks, './hooks/hooks.json');
   assert.equal(codex.hooks, './hooks/hooks.json');
   const config = JSON.parse(await readFile(new URL('../hooks/hooks.json', import.meta.url), 'utf8'));

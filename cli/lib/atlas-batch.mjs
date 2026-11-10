@@ -51,6 +51,7 @@ export async function prepareAtlases(directory, items, { resume = false } = {}) 
     } catch (error) {
       throw new Error(
         `Atlas batch stopped at item ${index + 1}: ${error.message}. Completed reports: ${JSON.stringify(results.map((r) => r.report))}. Retry the same batch with --resume.`,
+        { cause: error },
       );
     }
   }

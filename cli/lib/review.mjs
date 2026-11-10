@@ -12,7 +12,7 @@ import { reviewChecks, reviewRequirements } from './review-checks.mjs';
 import { validateMedia } from './media-check.mjs';
 
 const taskId = (task) => {
-  const { task_id, ...body } = task;
+  const { task_id: _taskId, ...body } = task;
   return createHash('sha256').update(JSON.stringify(body)).digest('hex');
 };
 const relative = (root, file) => path.relative(root, file).replaceAll('\\', '/');

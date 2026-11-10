@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
-import { mkdtemp, mkdir, writeFile, readFile, rm, appendFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, appendFile, symlink } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { validateProject, run } from '../cli/runtime/project.mjs';
-import { snapshotProject, hashFile } from '../cli/runtime/manifest.mjs';
+import { snapshotProject, hashFile, containedFile } from '../cli/runtime/manifest.mjs';
 import { timeMapping } from '../cli/runtime/timing.mjs';
 
 const cli = fileURLToPath(new URL('../cli/programmatic-video.mjs', import.meta.url));
@@ -67,6 +67,20 @@ test('optional scene links preserve legacy descriptions and reject broken resour
   assert.deepEqual((await validateProject(f.root, { probeAudio: false })).errors, []);
   f.project.review = { requirements: 'invalid' }; await f.save();
   assert.ok((await validateProject(f.root, { probeAudio: false })).errors.some((error) => error.includes('array')));
+});
+
+test('project snapshots resolve directory aliases and still reject linked inputs outside the project', async (t) => {
+  const f = await fixture(t), parent = path.dirname(f.root);
+  const alias = path.join(parent, 'linked project');
+  const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+  await symlink(f.root, alias, linkType);
+  const snapshot = await snapshotProject(alias, f.project, []);
+  assert.equal(snapshot.inputs.find((input) => input.file === 'animation.js').text, 'export function draw() {}\n');
+  const outside = path.join(parent, 'outside');
+  await mkdir(outside);
+  await writeFile(path.join(outside, 'private.txt'), 'Outside project');
+  await symlink(outside, path.join(f.root, 'external'), linkType);
+  await assert.rejects(containedFile(alias, 'external/private.txt'), /Input leaves project/);
 });
 
 test('bound export lookups retain old parameters/source text and detect a changed current project', { skip: !available }, async (t) => {

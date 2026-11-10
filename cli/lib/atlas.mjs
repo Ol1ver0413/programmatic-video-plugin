@@ -2,7 +2,7 @@ import path from 'node:path';
 import { realpath, writeFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { localFile, outputFile, probe } from '../runtime/project.mjs';
+import { outputFile, probe } from '../runtime/project.mjs';
 import { newFile } from './media.mjs';
 import { projectFile, readJson, fileHash } from './files.mjs';
 import { regionBounds, insidePolygon, point } from '../runtime/sprites.mjs';

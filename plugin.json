@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "programmatic-video",
-  "version": "0.5.0",
+  "version": "0.1.0",
   "description": "Agent-led video creation: brainstorm, plan, build moving drafts, review and learn.",
   "extensions": {
     "com.openai": {
