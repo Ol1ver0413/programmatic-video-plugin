@@ -63,9 +63,20 @@ export function tagDecision({ head, target, ancestor, pluginChanged, published }
 }
 
 export async function pack(root, destination) {
+  const npmCli = process.env.npm_execpath;
   const [metadata] = JSON.parse(
-    run('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', destination], root)
-      .stdout,
+    run(
+      npmCli ? process.execPath : 'npm',
+      [
+        ...(npmCli ? [npmCli] : []),
+        'pack',
+        '--ignore-scripts',
+        '--json',
+        '--pack-destination',
+        destination,
+      ],
+      root,
+    ).stdout,
   );
   checkPackage(metadata.files);
   return path.join(destination, metadata.filename);
@@ -123,6 +134,12 @@ export async function publish(root = repoRoot, env = process.env) {
     return { version: release.version, status: 'already-published', url: existing.url };
 
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'programmatic-video-release-'));
+  if (
+    path.dirname(temporary) !== os.tmpdir() ||
+    !path.basename(temporary).startsWith('programmatic-video-release-')
+  ) {
+    throw new Error('Unexpected release temporary directory');
+  }
   try {
     const archive = await pack(root, temporary);
     const notes = path.join(temporary, 'notes.md'),
@@ -174,12 +191,6 @@ export async function publish(root = repoRoot, env = process.env) {
       url: `https://github.com/${repository}/releases/tag/${release.tag}`,
     };
   } finally {
-    if (
-      path.dirname(temporary) !== os.tmpdir() ||
-      !path.basename(temporary).startsWith('programmatic-video-release-')
-    ) {
-      throw new Error('Unexpected release temporary directory');
-    }
     await rm(temporary, { recursive: true, force: true });
   }
 }

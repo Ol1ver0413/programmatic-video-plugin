@@ -290,8 +290,6 @@ export async function renderProject(directory, values = {}) {
       if (errors.length) throw new Error(errors.join('\n'));
       return { stills_written: stills.length, directory: stillDirectory };
     }
-  } catch (error) {
-    throw error;
   } finally {
     if (encoder && encoder.exitCode === null) encoder.kill();
     if (encoderClosed) await encoderClosed;

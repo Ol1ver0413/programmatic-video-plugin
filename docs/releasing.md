@@ -16,11 +16,18 @@ Add a dated `## [0.1.1] - YYYY-MM-DD` section to `CHANGELOG.md` describing the a
 
 ```sh
 npm run release:check
+npm run lint
 npm test
 npm run format:check
+npm run test:package
+npm run test:media
 ```
 
-Open a PR into `main`. Shipped skills, hooks, CLI, templates, agents, manifests, package metadata and compatibility launchers need a newer version in the same PR. Tests and repository maintenance that do not change the installed plugin can keep the version. CI compares the PR against its base, checks all declared versions and release notes, runs regression tests, and verifies the extracted distribution package.
+For development, use Node 22.13+ or 20.19+ (`npm ci --ignore-scripts`). Media tests need FFmpeg, FFprobe, Python with NumPy, and Chromium (`npm exec -- playwright install chromium`); `PROGRAMMATIC_VIDEO_PYTHON` can select the Python executable. The test fixtures use temporary directories and synthetic media, without paid generation services.
+
+Open a PR into `main`. Shipped skills, hooks, CLI, templates, agents, manifests, package metadata and compatibility launchers need a newer version in the same PR. Tests and repository maintenance that do not change the installed plugin can keep the version.
+
+CI checks versions, release notes, Prettier formatting, ESLint errors and Python helper syntax. It runs regression and extracted-package tests on Linux, macOS and Windows with Node 22, and also Linux with Node 20. The three Node 22 jobs render actual video with Playwright and FFmpeg, checking timing, captions, incremental renders, cache reuse and asset preparation. Required media dependencies are checked before tests so missing tools cannot silently skip audio regressions. The aggregate `verify` check passes only when every quality and platform job succeeds.
 
 ## Merge and publish
 
