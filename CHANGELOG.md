@@ -10,4 +10,5 @@ First public release of Programmatic Video.
 - Plan asset reuse and targeted edits before generation; choose related image sheets or individual images by required detail, and repair failed items without regenerating approved assets.
 - Synchronize all plugin versions, check pull requests, and publish matching Git tags and GitHub releases from tested main commits.
 - Check code quality with ESLint and Prettier; run regression, extracted-package and real video-rendering checks on Linux, macOS and Windows, with an additional Node 20 compatibility job.
+- Resolve project-directory aliases before checking file containment, preserving export and review snapshots on macOS and Windows while rejecting linked inputs outside the project.
 - Keep generated videos, private materials, caches, and session traces out of distribution archives.
