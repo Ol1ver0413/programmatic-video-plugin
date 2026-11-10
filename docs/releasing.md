@@ -23,11 +23,11 @@ npm run test:package
 npm run test:media
 ```
 
-For development, use Node 22.13+ or 20.19+ (`npm ci --ignore-scripts`). Media tests need FFmpeg, FFprobe, Python with NumPy, and Chromium (`npm exec -- playwright install chromium`); `PROGRAMMATIC_VIDEO_PYTHON` can select the Python executable. The test fixtures use temporary directories and synthetic media, without paid generation services.
+For development, use Node 22.13+ (`npm ci --ignore-scripts`), matching CI's Node 22 environment. Media tests need FFmpeg, FFprobe, Python with NumPy, and Chromium (`npm exec -- playwright install chromium`); `PROGRAMMATIC_VIDEO_PYTHON` can select the Python executable. The test fixtures use temporary directories and synthetic media, without paid generation services.
 
 Open a PR into `main`. Shipped skills, hooks, CLI, templates, agents, manifests, package metadata and compatibility launchers need a newer version in the same PR. Tests and repository maintenance that do not change the installed plugin can keep the version.
 
-CI checks versions, release notes, Prettier formatting, ESLint errors and Python helper syntax. It runs regression and extracted-package tests on Linux, macOS and Windows with Node 22, and also Linux with Node 20. The three Node 22 jobs render actual video with Playwright and FFmpeg, checking timing, captions, incremental renders, cache reuse and asset preparation. Required media dependencies are checked before tests so missing tools cannot silently skip audio regressions. The aggregate `verify` check passes only when every quality and platform job succeeds.
+CI runs `Code quality`, `Linux`, `macOS` and `Windows` independently. Each operating system has one Node 22 job; the three platform jobs run in parallel. Code quality checks versions, release notes, Prettier formatting, ESLint errors and Python helper syntax. Each platform runs regression tests, verifies the extracted package, and renders actual video with Playwright and FFmpeg to check timing, captions, incremental renders, cache reuse and asset preparation. Required media dependencies are checked before tests so missing tools cannot silently skip audio regressions. The aggregate `verify` check passes only when every quality and platform job succeeds. New PR commits cancel outdated runs; main publication runs are not cancelled.
 
 ## Merge and publish
 

@@ -3,6 +3,7 @@
 *.py text eol=lf
 *.json text eol=lf
 *.yml text eol=lf
+*.yaml text eol=lf
 bin/programmatic-video text eol=lf
 bin/pixel-video text eol=lf
 bin/*.cmd text eol=crlf

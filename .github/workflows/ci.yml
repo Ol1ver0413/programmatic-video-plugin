@@ -10,8 +10,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   quality:
+    name: Code quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -40,19 +45,18 @@ jobs:
         run: python3 -c "import ast,pathlib; ast.parse(pathlib.Path('cli/lib/audio-audit.py').read_text(encoding='utf-8'))"
 
   test:
-    needs: quality
+    name: ${{ matrix.platform }}
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         include:
-          - os: ubuntu-latest
-            node: '22'
-          - os: macos-latest
-            node: '22'
-          - os: windows-latest
-            node: '22'
-          - os: ubuntu-latest
-            node: '20'
+          - platform: Linux
+            os: ubuntu-latest
+          - platform: macOS
+            os: macos-latest
+          - platform: Windows
+            os: windows-latest
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     env:
@@ -64,7 +68,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '22'
           cache: npm
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -100,10 +104,8 @@ jobs:
       - run: npm test
       - run: npm run test:package
       - name: Install Chromium for real rendering tests
-        if: matrix.node == '22'
-        run: npm exec -- playwright install --with-deps chromium
+        run: npm exec -- playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium
       - name: Test actual rendering, caches, captions and atlas preparation
-        if: matrix.node == '22'
         run: npm run test:media
 
   verify:

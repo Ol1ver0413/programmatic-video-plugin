@@ -32,6 +32,7 @@ export function checkPackage(files) {
     throw new Error(
       `Private or generated files in package: ${forbidden.map((file) => file.path).join(', ')}`,
     );
+  const paths = new Set(files.map((file) => file.path));
   for (const required of [
     'plugin.json',
     '.codebuddy-plugin/plugin.json',
@@ -45,11 +46,18 @@ export function checkPackage(files) {
     'templates/video/project.json',
     'agents/video-reviewer.md',
     'LICENSE',
+    ...[
+      'using-programmatic-video',
+      'brainstorming',
+      'writing-plans',
+      'producing-video',
+      'reviewing-video',
+      'finishing-video',
+    ].map((name) => `skills/${name}/SKILL.md`),
   ]) {
-    if (!files.some((file) => file.path === required))
-      throw new Error(`Package missing ${required}`);
+    if (!paths.has(required)) throw new Error(`Package missing ${required}`);
   }
-  const skills = files.filter((file) => /^skills\/[^/]+\/SKILL.md$/.test(file.path));
+  const skills = [...paths].filter((name) => /^skills\/[^/]+\/SKILL.md$/.test(name));
   if (skills.length !== 6) throw new Error('Package must contain all six workflow skills');
 }
 

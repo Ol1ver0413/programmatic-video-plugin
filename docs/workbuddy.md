@@ -1,6 +1,6 @@
 # WorkBuddy / CodeBuddy 插件分发
 
-Programmatic Video 按完整插件分发：六个阶段与入口技能、一个审片角色、SessionStart hook、本地 CLI、共享代码和工程模板保存在同一个插件根目录。图片生成、素材检索等能力由宿主提供；插件不捆绑模型服务。
+Programmatic Video 按完整插件分发：五个阶段技能与一个入口技能、一个审片角色、SessionStart hook、本地 CLI、共享代码和工程模板保存在同一个插件根目录。图片生成、素材检索等能力由宿主提供；插件不捆绑模型服务。
 
 ## 当前状态
 

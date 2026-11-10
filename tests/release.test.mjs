@@ -69,10 +69,18 @@ test('one version update synchronizes every host and both lock fields, with pref
     const value = entry.field.reduce((current, key) => current[key], await json(root, entry.path));
     assert.equal(value, '0.2.0');
   }
-  const before = await readFile(path.join(root, 'package.json'));
   await writeFile(path.join(root, '.codex-plugin/plugin.json'), '{}\n');
+  const before = new Map(
+    await Promise.all(
+      [...new Set(config.files.map((entry) => entry.path))].map(async (name) => [
+        name,
+        await readFile(path.join(root, name)),
+      ]),
+    ),
+  );
   await assert.rejects(setVersion(root, '0.3.0'), /Missing version field/);
-  assert.deepEqual(await readFile(path.join(root, 'package.json')), before);
+  for (const [name, contents] of before)
+    assert.deepEqual(await readFile(path.join(root, name)), contents, name);
 });
 
 test('release checks reject host drift and missing or duplicate notes', async (t) => {
@@ -162,6 +170,12 @@ test('release archive checks require the complete plugin and exclude private or 
     () => checkPackage(files.filter((file) => file.path !== 'cli/programmatic-video.mjs')),
     /missing/,
   );
+  for (const skill of files.filter((file) => file.path.startsWith('skills/'))) {
+    const substituted = files.map((file) =>
+      file === skill ? { path: 'skills/unrelated/SKILL.md' } : file,
+    );
+    assert.throws(() => checkPackage(substituted), /missing skills\//);
+  }
 });
 
 test('release tags cannot move and only drafts can be resumed', () => {
