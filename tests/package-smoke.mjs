@@ -6,6 +6,7 @@ import { readFile, stat, mkdtemp, rm, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { checkPackage } from '../scripts/release.mjs';
 
 if (!process.argv[2]) throw new Error('Usage: node tests/package-smoke.mjs <extracted-package-directory>');
 const root = path.resolve(process.argv[2]);
@@ -13,7 +14,17 @@ const expected = JSON.parse(await readFile(new URL('../package.json', import.met
 const parent = await mkdtemp(path.join(os.tmpdir(), 'programmatic-video-package-'));
 const project = path.join(parent, '新 工程');
 const run = (entry, args = []) => spawnSync(process.execPath, [path.join(root, entry), ...args], { cwd: parent, encoding: 'utf8', windowsHide: true });
+async function packagedFiles(directory, prefix = '') {
+  const files = [];
+  for (const item of await readdir(directory, { withFileTypes: true })) {
+    const name = prefix + item.name;
+    if (item.isDirectory()) files.push(...await packagedFiles(path.join(directory, item.name), name + '/'));
+    else files.push({ path: name });
+  }
+  return files;
+}
 try {
+  checkPackage(await packagedFiles(root));
   const version = run('bin/programmatic-video', ['--version']);
   assert.equal(version.status, 0, version.stderr);
   assert.equal(version.stdout.trim(), expected);
@@ -37,6 +48,16 @@ try {
   await assert.rejects(stat(path.join(parent, 'unused-memory')), { code: 'ENOENT' });
   await stat(path.join(root, 'cli/lib/audio-audit.py'));
   await stat(path.join(root, 'agents/video-reviewer.md'));
+  const buddy = JSON.parse(await readFile(path.join(root, '.codebuddy-plugin/plugin.json'), 'utf8'));
+  const marketplace = JSON.parse(await readFile(path.join(root, '.codebuddy-plugin/marketplace.json'), 'utf8'));
+  assert.equal(buddy.name, 'programmatic-video');
+  assert.equal(buddy.version, expected);
+  assert.equal(marketplace.plugins[0].name, buddy.name);
+  assert.equal(path.resolve(root, marketplace.plugins[0].source), root);
+  assert.equal((await readdir(path.join(root, 'skills'))).length, 6);
+  await stat(path.join(root, 'hooks/hooks.json'));
+  await stat(path.join(root, 'docs/workbuddy.md'));
+  await stat(path.join(root, 'skills/producing-video/references/asset-reuse.md'));
   await stat(path.join(project, 'tools/manifest.mjs'));
   await stat(path.join(project, 'tools/animation.mjs'));
   await stat(path.join(project, 'tools/render-core.mjs'));
@@ -44,7 +65,7 @@ try {
   const api = await import(pathToFileURL(apiPath));
   for (const name of ['applyProjectPatch', 'renderProject', 'renderIncremental', 'prepareAtlases', 'cameraAt', 'collectFrames']) assert.equal(typeof api[name], 'function');
   assert.equal(run('cli/programmatic-video.mjs', ['project', '--project', project, '--time', '0.1']).status, 0);
-  console.log(JSON.stringify({ archive_version: expected, canonical_and_legacy_entries: true, public_api: true, unrelated_cwd: true, standalone_project_runtime: true, packaged_ignore_rules: true, session_hook: true, optional_audio_helper: true }));
+  console.log(JSON.stringify({ archive_version: expected, canonical_and_legacy_entries: true, public_api: true, unrelated_cwd: true, standalone_project_runtime: true, packaged_ignore_rules: true, session_hook: true, codebuddy_distribution: true, optional_audio_helper: true }));
 } finally {
   assert.equal(path.dirname(parent), os.tmpdir());
   assert.ok(path.basename(parent).startsWith('programmatic-video-package-'));

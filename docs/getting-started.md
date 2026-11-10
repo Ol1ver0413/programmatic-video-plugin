@@ -6,6 +6,7 @@
 plugin.json                    Codex 可移植插件清单
 .codex-plugin/plugin.json       Codex 兼容清单
 .claude-plugin/plugin.json      Claude Code 清单
+.codebuddy-plugin/              WorkBuddy / CodeBuddy 兼容清单与 Git 插件市场
 bin/                           命令启动文件
 cli/programmatic-video.mjs      CLI 参数与分发
 cli/lib/                       公共操作与状态逻辑
@@ -46,6 +47,8 @@ Windows 可使用 npm.cmd、programmatic-video.cmd。命令找不到时检查 np
 宿主里的插件名称改为 programmatic-video，入口 skill 改为 using-programmatic-video。安装新插件后停用旧 pixel-video 插件，避免重复的 SessionStart 注入；按宿主流程审阅新 hook，不自动修改信任配置。仅更新源码或安装 CLI 不会刷新宿主插件缓存。
 
 ## 加载宿主
+
+WorkBuddy / CodeBuddy 的完整插件分发、安装验证与收录状态见[单独说明](workbuddy.md)。
 
 Claude Code 可用 `claude --plugin-dir "/absolute/path/programmatic-video-plugin"`，在会话使用 `/programmatic-video:using-programmatic-video`。阶段 skill 使用插件命名空间，避免与其他插件同名 skill 混淆。
 

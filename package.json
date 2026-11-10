@@ -1,11 +1,15 @@
 {
   "name": "programmatic-video-plugin",
-  "version": "0.5.0",
+  "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "description": "Agent skills and local tools for editable, code-driven videos.",
   "type": "module",
-  "exports": {".": "./cli/api.mjs", "./animation": "./cli/runtime/animation.mjs", "./sprites": "./cli/runtime/sprites.mjs"},
+  "exports": {
+    ".": "./cli/api.mjs",
+    "./animation": "./cli/runtime/animation.mjs",
+    "./sprites": "./cli/runtime/sprites.mjs"
+  },
   "bin": {
     "programmatic-video": "bin/programmatic-video",
     "pixel-video": "bin/programmatic-video"
@@ -18,9 +22,11 @@
     "cli/",
     "agents/",
     "templates/",
-    "scripts/",
+    "scripts/programmatic-video.mjs",
+    "scripts/pixel-video.mjs",
     "skills/",
     "hooks/",
+    ".codebuddy-plugin/",
     ".claude-plugin/",
     ".codex-plugin/",
     ".agents/plugins/marketplace.json",
@@ -28,11 +34,16 @@
     "LICENSE",
     "README.md",
     "README.zh-CN.md",
+    "CHANGELOG.md",
     "docs/getting-started.md",
+    "docs/workbuddy.md",
+    "docs/releasing.md",
     "docs/production-lessons.md"
   ],
   "scripts": {
-    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs tests/reuse.test.mjs tests/layout.test.mjs tests/pipeline.test.mjs tests/description.test.mjs tests/production.test.mjs",
+    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs tests/reuse.test.mjs tests/layout.test.mjs tests/pipeline.test.mjs tests/description.test.mjs tests/production.test.mjs tests/release.test.mjs",
+    "release:version": "node scripts/version.mjs set",
+    "release:check": "node scripts/version.mjs check",
     "format": "prettier --write \"{bin,cli,hooks,scripts,skills,templates}/**/*.{mjs,js}\"",
     "format:check": "prettier --check \"{bin,cli,hooks,scripts,skills,templates}/**/*.{mjs,js}\""
   },

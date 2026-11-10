@@ -43,6 +43,10 @@ programmatic-video --help
 
 [Setup and migration (中文)](docs/getting-started.md) · [CLI and project conventions (中文)](skills/using-programmatic-video/references/toolkit.md) · [Lessons from real productions (中文)](docs/production-lessons.md)
 
+WorkBuddy / CodeBuddy distribution metadata is included; host testing and official listing are pending. See the [installation notes (中文)](docs/workbuddy.md).
+
+Public releases start at **0.1.0**. All host manifests and the CLI share one version. Changes go through a PR into `main`; CI checks the plugin and publishes its matching tag and release. See [release rules](docs/releasing.md) and the [changelog](CHANGELOG.md).
+
 Formerly `pixel-video-plugin`. The `pixel-video` CLI alias and existing memory remain compatible.
 
 ## License

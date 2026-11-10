@@ -43,6 +43,10 @@ programmatic-video --help
 
 [安装与迁移](docs/getting-started.md) · [CLI 与工程约定](skills/using-programmatic-video/references/toolkit.md) · [真实制作复盘](docs/production-lessons.md)
 
+WorkBuddy / CodeBuddy 已准备插件分发结构，宿主实测与官方收录待完成，见[安装与投递说明](docs/workbuddy.md)。
+
+首个发布版本为 **0.1.0**，各宿主插件清单与 CLI 统一版本。修改通过 PR 合入 `main`；CI 检查后生成对应 tag 和 Release。见[发布规则](docs/releasing.md)与[更新记录](CHANGELOG.md)。
+
 项目原名 `pixel-video-plugin`。旧的 `pixel-video` 命令和已有记忆继续兼容。
 
 ## 开源协议
