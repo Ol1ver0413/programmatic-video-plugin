@@ -1,6 +1,6 @@
 # Programmatic Video
 
-[![X: @YZLin151776](https://img.shields.io/badge/X-%40YZLin151776-000000?style=flat&logo=x&logoColor=white)](https://x.com/YZLin151776) [![抖音号：47421190572](https://img.shields.io/badge/%E6%8A%96%E9%9F%B3-47421190572-FE2C55?style=flat&logo=tiktok&logoColor=white)](https://www.douyin.com/search/47421190572?type=user)
+[![抖音号：47421190572](https://img.shields.io/badge/%E6%8A%96%E9%9F%B3-47421190572-FE2C55?style=flat&logo=tiktok&logoColor=white)](https://www.douyin.com/search/47421190572?type=user)
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
