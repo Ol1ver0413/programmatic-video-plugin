@@ -12,10 +12,7 @@ An open-source plugin for Codex and Claude Code: workflow skills, an editable vi
 
 ## How it works
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/production-workflow.dark.svg">
-  <img alt="The full plugin loop: brainstorm, script and plan, produce using project.json and CLI/API, review, revise and deliver. Separately, analyze production traces and test reusable changes for the next task." src="docs/images/production-workflow.svg">
-</picture>
+![The creation and tool-improvement loop: brainstorm, script and plan, produce and review using project.json, then learn reusable operations from traces for the next task.](docs/images/production-workflow.svg)
 
 The agent writes the script, maintains one `project.json`, and calls the CLI/API to prepare assets, make a moving draft and render the video. One reviewer can help check it; feedback guides edits to the same project.
 
