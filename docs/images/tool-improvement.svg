@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="390" viewBox="0 0 1120 390" role="img" aria-labelledby="title description">
+  <title id="title">From production tasks to reusable tools</title>
+  <desc id="description">Make a video, review production traces and feedback, extract and test reusable operations, and update the plugin for the next project. Tool improvement is a separate development step.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#77756d" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    text { fill: #2d2c28; font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .eyebrow { fill: #78766d; font-size: 12px; letter-spacing: 1.6px; }
+    .heading { font-family: Georgia, "Noto Serif CJK SC", SimSun, serif; font-size: 36px; }
+    .label { font-size: 21px; font-weight: 500; }
+    .detail { fill: #6b6960; font-size: 13px; }
+    .caption { fill: #6b6960; font-size: 15px; }
+    .connector { fill: none; stroke: #77756d; stroke-width: 1.5; marker-end: url(#arrow); }
+  </style>
+  <rect width="1120" height="390" fill="#faf9f5"/>
+  <text x="64" y="43" class="eyebrow" text-anchor="start">PROGRAMMATIC VIDEO / TOOL DEVELOPMENT</text>
+  <text x="64" y="91" class="heading" text-anchor="start">Keep the useful parts.</text>
+  <text x="64" y="122" class="caption" text-anchor="start">Find repeated work in real productions. Turn it into tested tools.</text>
+  <rect x="64" y="162" width="224" height="90" rx="8" fill="#fdfcf9" stroke="#b8b5a9"/>
+  <text x="176.0" y="199" class="label" text-anchor="middle">Make a video</text>
+  <text x="176.0" y="225" class="detail" text-anchor="middle">Brief, scenes, deliverables</text>
+  <path d="M 288 207 H 318" class="connector"/>
+  <rect x="320" y="162" width="224" height="90" rx="8" fill="#fdfcf9" stroke="#b8b5a9"/>
+  <text x="432.0" y="199" class="label" text-anchor="middle">Trace + feedback</text>
+  <text x="432.0" y="225" class="detail" text-anchor="middle">What worked? What repeated?</text>
+  <path d="M 544 207 H 574" class="connector"/>
+  <rect x="576" y="162" width="224" height="90" rx="8" fill="#f0dfd5" stroke="#c77b60"/>
+  <text x="688.0" y="199" class="label" text-anchor="middle">Extract + test</text>
+  <text x="688.0" y="225" class="detail" text-anchor="middle">Turn repetition into tools</text>
+  <path d="M 800 207 H 830" class="connector"/>
+  <rect x="832" y="162" width="224" height="90" rx="8" fill="#fdfcf9" stroke="#b8b5a9"/>
+  <text x="944.0" y="199" class="label" text-anchor="middle">Update the plugin</text>
+  <text x="944.0" y="225" class="detail" text-anchor="middle">Skills · CLI / API · hooks</text>
+  <path d="M 944 252 V 313 H 176 V 253" class="connector"/>
+  <rect x="388" y="299" width="344" height="28" fill="#faf9f5"/>
+  <text x="560" y="318" class="caption" text-anchor="middle">Use it in the next project</text>
+  <text x="64" y="366" class="detail" text-anchor="start">A separate development step: review local traces, test changes, and ship through pull requests.</text>
+</svg>

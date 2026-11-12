@@ -4,51 +4,47 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-**An agent plugin for making editable, code-driven videos with Claude Code or Codex.**
+**Make editable videos with an AI coding agent.**
 
-Start with lyrics, narration or an idea. Work with your agent on the script and scenes, make a moving draft, then refine and export the video. Pixel animation is one style; illustrated scenes, motion graphics and narration visuals can use the same workflow.
+An open-source plugin for Codex and Claude Code. Turn lyrics, narration or an idea into pixel animation, illustrated scenes or motion graphics, using reusable skills and video tools.
 
-**This project is in early development.** We're testing it through real video projects. Try it out, share feedback, or help improve the skills and tools. Issues and pull requests are welcome.
+**Still early.** We're improving it through real video projects. Try it, share feedback, or help build the next useful tool. Issues and pull requests are welcome.
 
 ## How it works
 
-**Brainstorm with references → Write the script and plan → Build a moving draft → Produce, review and deliver**
+![The production workflow: brainstorm, write the script and plan, confirm a moving draft, then produce, review and deliver an editable video.](docs/images/production-workflow.svg)
 
-Each video has its own brief, plan, assets, editable scenes, previews and production notes. Keep useful style examples and explicitly confirmed preferences for future work.
+Each video has its own directory and one `project.json` connecting the timeline, assets, scene code and captions. Your agent makes the video; one reviewer can help check it.
 
-The plugin includes an entry skill, four creative stages, a reusable review skill, a session-start hook and a local `programmatic-video` CLI. Built-in rendering currently uses Canvas for image assets, animation and graphics; general external-video editing is still a future extension.
-
-Shared commands live in `cli/`, launchers in `bin/`, project templates in `templates/`, hooks in `hooks/`, and workflow skills in `skills/`.
-
-The CLI and JS API reuse media timing, sprite preparation, camera tools and checks across projects. Low-cost full-length drafts, opt-in scene caching and shared frame evidence make revisions easier.
-
-Each project keeps one `project.json` for its timeline, assets, scene code, editable parameters and review requirements. One producing agent and one reviewer use it to make targeted revisions.
+Canvas composes frames from reusable assets, and FFmpeg encodes the video. You can revise the scene code, timing or subtitles without generating every frame from scratch.
 
 ## Get started
 
-Install Node.js 20+, FFmpeg with ffprobe, and Chrome, Edge or Playwright Chromium.
-
-[Download the source ZIP](https://github.com/Ol1ver0413/programmatic-video-plugin/archive/refs/heads/main.zip), or install from a local checkout:
+You'll need Node.js 20+, FFmpeg with ffprobe, and Chrome, Edge or Playwright Chromium.
 
 ```sh
 git clone https://github.com/Ol1ver0413/programmatic-video-plugin.git
 cd programmatic-video-plugin
 npm install --global .
-programmatic-video --help
+programmatic-video doctor
 ```
 
-**The package is not published to npm.** Load the plugin in your host, start with `using-programmatic-video`, and describe what you want to make.
+Then **load the plugin in your host** using the [setup guide](docs/getting-started.md). CLI installation is separate from plugin loading; the package is not published to npm.
 
-> Make an illustrated video for my narration. Let's discuss the scenes and try the opening before producing the rest.
+Start with `using-programmatic-video` and describe what you want to make:
 
-[Setup and migration (中文)](docs/getting-started.md) · [CLI and project conventions (中文)](skills/using-programmatic-video/references/toolkit.md) · [Lessons from real productions (中文)](docs/production-lessons.md)
+> Make an illustrated video for this narration. Let's work out the story and try a short moving draft before producing the rest.
 
-WorkBuddy / CodeBuddy distribution metadata is included; host testing and official listing are pending. See the [installation notes (中文)](docs/workbuddy.md).
+## Improving the tools
 
-Public releases start at **0.1.0**. All host manifests and the CLI share one version. Changes go through a PR into `main`; CI checks the plugin and publishes its matching tag and release. See [release rules](docs/releasing.md) and the [changelog](CHANGELOG.md).
+![The development loop: make a video, review traces and feedback, extract and test reusable operations, then improve the plugin for the next project.](docs/images/tool-improvement.svg)
 
-Formerly `pixel-video-plugin`. The `pixel-video` CLI alias and existing memory remain compatible.
+We review real production traces, turn repeated work into reusable skills and CLI/API tools, then test and ship changes through PRs. `finish` saves project lessons and style examples; long-term preferences require explicit confirmation.
+
+[Setup](docs/getting-started.md) · [Tools](skills/using-programmatic-video/references/toolkit.md) · [Production lessons](docs/production-lessons.md) · [Releases](CHANGELOG.md) · [Contributing](docs/releasing.md) — guides are currently in Chinese.
+
+WorkBuddy / CodeBuddy metadata is included; desktop compatibility and official listing are still unverified. See the [distribution notes](docs/workbuddy.md).
 
 ## License
 
-Project code is licensed under [MIT](LICENSE). Bundled fonts retain their [original licenses](templates/video/assets/fonts/LICENSE.txt).
+[MIT](LICENSE). Bundled fonts retain their [original licenses](templates/video/assets/fonts/LICENSE.txt).

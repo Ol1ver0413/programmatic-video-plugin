@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="440" viewBox="0 0 1120 440" role="img" aria-labelledby="title description">
+  <title id="title">视频制作流程</title>
+  <desc id="description">脑暴与参考，脚本与计划，确认动态小样，制作与审片，再交付。project.json 关联工程，审片反馈用于局部修改。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#77756d" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    text { fill: #2d2c28; font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .eyebrow { fill: #78766d; font-size: 12px; letter-spacing: 1.6px; }
+    .heading { font-family: Georgia, "Noto Serif CJK SC", SimSun, serif; font-size: 36px; }
+    .label { font-size: 21px; font-weight: 500; }
+    .detail { fill: #6b6960; font-size: 13px; }
+    .caption { fill: #6b6960; font-size: 15px; }
+    .connector { fill: none; stroke: #77756d; stroke-width: 1.5; marker-end: url(#arrow); }
+  </style>
+  <rect width="1120" height="440" fill="#faf9f5"/>
+  <text x="64" y="43" class="eyebrow" text-anchor="start">PROGRAMMATIC VIDEO / WORKFLOW</text>
+  <text x="64" y="91" class="heading" text-anchor="start">从想法到成片，工程始终可编辑。</text>
+  <rect x="64" y="151" width="176" height="90" rx="8" fill="#fdfcf9" stroke="#b8b5a9"/>
+  <text x="152.0" y="188" class="label" text-anchor="middle">脑暴与参考</text>
+  <text x="152.0" y="214" class="detail" text-anchor="middle">明确内容与画风</text>
+  <path d="M 240 196 H 266" class="connector"/>
+  <rect x="268" y="151" width="176" height="90" rx="8" fill="#fdfcf9" stroke="#b8b5a9"/>
+  <text x="356.0" y="188" class="label" text-anchor="middle">脚本与计划</text>
+  <text x="356.0" y="214" class="detail" text-anchor="middle">先写故事，再排分镜</text>
+  <path d="M 444 196 H 470" class="connector"/>
+  <rect x="472" y="151" width="176" height="90" rx="8" fill="#f0dfd5" stroke="#c77b60"/>
+  <text x="560.0" y="188" class="label" text-anchor="middle">动态小样</text>
+  <text x="560.0" y="214" class="detail" text-anchor="middle">确认方法，再扩展制作</text>
+  <path d="M 648 196 H 674" class="connector"/>
+  <rect x="676" y="151" width="176" height="90" rx="8" fill="#fdfcf9" stroke="#b8b5a9"/>
+  <text x="764.0" y="188" class="label" text-anchor="middle">制作与审片</text>
+  <text x="764.0" y="214" class="detail" text-anchor="middle">制作、检查、局部修改</text>
+  <path d="M 852 196 H 878" class="connector"/>
+  <rect x="880" y="151" width="176" height="90" rx="8" fill="#fdfcf9" stroke="#b8b5a9"/>
+  <text x="968.0" y="188" class="label" text-anchor="middle">交付</text>
+  <text x="968.0" y="214" class="detail" text-anchor="middle">成片与可编辑工程</text>
+  <path d="M 764 241 V 273 H 560 V 242" class="connector"/>
+  <text x="662" y="300" class="caption" text-anchor="middle">集中反馈，局部修改</text>
+  <rect x="64" y="326" width="992" height="65" rx="8" fill="#f0eee6"/>
+  <text x="88" y="366" font-size="21">project.json</text>
+  <text x="280" y="365" class="caption" text-anchor="start">时间轴 · 素材引用 · 场景代码 · 字幕</text>
+  <text x="64" y="418" class="detail" text-anchor="start">图片作为素材复用，由代码编排每一帧。需要时使用一个独立 reviewer。</text>
+</svg>

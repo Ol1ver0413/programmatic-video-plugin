@@ -4,51 +4,47 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-**和 Claude Code / Codex 一起制作可编辑、由代码驱动的视频，面向 UP 主和内容创作者。**
+**和 AI coding agent 一起制作可编辑的视频。**
 
-从歌词、配音或一个想法出发，讨论脚本与分镜，先做动态小样，再逐步制作、审片和导出。Pixel animation 是一种画风，插画、动态图文和配音配画也可以沿用这套流程。
+一个面向 Codex 和 Claude Code 的开源插件。通过可复用的 skill 和视频工具，把歌词、配音或想法做成像素动画、插画场景或动态图形。
 
-**项目仍处于早期。** 我们正在通过实际视频制作持续打磨。欢迎试用、分享反馈，也欢迎通过 Issue 或 PR 一起改进 skill 和工具。
+**项目仍处于早期。** 我们正在边做视频边打磨。欢迎试用、提反馈，也欢迎通过 Issue 或 PR 一起改进 skill 和工具。
 
 ## 怎么工作
 
-**脑暴与收集参考 → 写脚本和计划 → 做动态小样 → 制作、审片与交付**
+![制作流程：脑暴与参考、脚本与计划、确认动态小样，再制作、审片和交付可编辑的视频。](docs/images/production-workflow.zh-CN.svg)
 
-每条视频都有自己的工程目录，保存需求、计划、素材、场景代码、小样、成片和制作记录。下次可以接着改，也能参考已有风格与用户明确认可的偏好。
+每个视频有独立目录，一份 `project.json` 关联时间轴、素材、场景代码和字幕。一个 agent 负责制作，需要时由一个 reviewer 协助检查。
 
-插件包含一个入口 skill、四个创作阶段、一个可复用的审片 skill、启动 hook 和本地 `programmatic-video` CLI。内置渲染目前使用 Canvas 编排图片、动画和图形，通用外部视频剪辑仍是后续扩展方向。
-
-公共 CLI 在 `cli/`，命令启动文件在 `bin/`，工程模板在 `templates/`，hooks 与 skills 各自独立。
-
-CLI 与 JS API 复用媒体时间处理、素材准备、镜头和检查工具。支持低成本全长预演、按约定启用的场景缓存和共享取帧证据，方便持续修改。
-
-每个项目维护一份 `project.json`，统一时间轴、素材、场景代码、可调参数与专项审查要求；一个制作 agent 和一个 reviewer 围绕它定位、修改和复查。
+Canvas 用可复用素材编排每一帧，FFmpeg 编码成片。修改场景代码、时间或字幕即可调整视频，不需要每一帧重新生图。
 
 ## 开始使用
 
-准备 Node.js 20+、FFmpeg（含 ffprobe）和 Chrome / Edge 或 Playwright Chromium。
-
-[下载源码 ZIP](https://github.com/Ol1ver0413/programmatic-video-plugin/archive/refs/heads/main.zip)，或从本地源码安装：
+准备 Node.js 20+、FFmpeg（含 ffprobe），以及 Chrome、Edge 或 Playwright Chromium。
 
 ```sh
 git clone https://github.com/Ol1ver0413/programmatic-video-plugin.git
 cd programmatic-video-plugin
 npm install --global .
-programmatic-video --help
+programmatic-video doctor
 ```
 
-**暂不向 npm 发布包。** 加载插件后，使用 `using-programmatic-video`，告诉 agent 想做什么。
+再按[安装指南](docs/getting-started.md)**将插件加载到宿主**。CLI 安装和宿主加载是两步；目前不向 npm 发布包。
 
-> 我想给这段配音做插画视频。我们先聊分镜，做个开场小样，再制作后面的部分。
+从 `using-programmatic-video` 开始，告诉 agent 想做什么：
 
-[安装与迁移](docs/getting-started.md) · [CLI 与工程约定](skills/using-programmatic-video/references/toolkit.md) · [真实制作复盘](docs/production-lessons.md)
+> 给这段配音做一条插画视频。我们先聊内容和分镜，做一小段动态小样，再制作后面的部分。
 
-WorkBuddy / CodeBuddy 已准备插件分发结构，宿主实测与官方收录待完成，见[安装与投递说明](docs/workbuddy.md)。
+## 工具如何迭代
 
-首个发布版本为 **0.1.0**，各宿主插件清单与 CLI 统一版本。修改通过 PR 合入 `main`；CI 检查后生成对应 tag 和 Release。见[发布规则](docs/releasing.md)与[更新记录](CHANGELOG.md)。
+![工具迭代：制作视频，回看 trace 和反馈，提取并测试可复用操作，再更新插件用于下一次制作。](docs/images/tool-improvement.zh-CN.svg)
 
-项目原名 `pixel-video-plugin`。旧的 `pixel-video` 命令和已有记忆继续兼容。
+回看实际制作的 trace 和反馈，把重复工作沉淀为可复用的 skill 和 CLI/API 工具，测试后通过 PR 更新插件。`finish` 保存本片经验和风格案例；长期偏好需要明确确认。
+
+[安装与迁移](docs/getting-started.md) · [CLI 与工程约定](skills/using-programmatic-video/references/toolkit.md) · [制作复盘](docs/production-lessons.md) · [更新记录](CHANGELOG.md) · [贡献与发布规则](docs/releasing.md)
+
+WorkBuddy / CodeBuddy 已有分发元数据，桌面兼容性和官方收录尚未验证，见[分发说明](docs/workbuddy.md)。
 
 ## 开源协议
 
-项目代码采用 [MIT 协议](LICENSE)。附带字体保留各自的[原有许可证](templates/video/assets/fonts/LICENSE.txt)。
+[MIT](LICENSE)。附带字体保留各自的[原有许可证](templates/video/assets/fonts/LICENSE.txt)。
