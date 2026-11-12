@@ -12,9 +12,14 @@ export { prepareAtlases } from './lib/atlas-batch.mjs';
 export { packAtlasPixels } from './lib/atlas-pack.mjs';
 export { processAudio, cutAudio, convertCaptions } from './lib/media.mjs';
 export { parseCaptions, clipCaptions, alignCaptionText } from './lib/captions.mjs';
+export { captionUtterances, captionRowsAt, shiftCaptions } from './runtime/captions.mjs';
 export { collectFrames } from './lib/frames.mjs';
 export { validateMedia } from './lib/media-check.mjs';
 export { reviewVideo } from './lib/review.mjs';
+export { prepareAsset, importAsset, adoptAsset, listAssets } from './lib/assets.mjs';
+export { recoverAssetLock } from './lib/asset-catalog.mjs';
+export { stateAt, createPoseLibrary, drawPose } from './runtime/sprites.mjs';
+export { prepareVideoPreview } from './lib/preview.mjs';
 export {
   sceneClock,
   eventAge,

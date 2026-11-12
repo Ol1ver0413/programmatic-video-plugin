@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import os from 'node:os';
+import {fileURLToPath} from 'node:url';
+import {mkdtemp,writeFile,readFile,rm,mkdir,copyFile} from 'node:fs/promises';
+import {spawnSync} from 'node:child_process';
+import {createProject} from '../cli/lib/project-init.mjs';
+import {prepareVideoPreview} from '../cli/api.mjs';
+import {run} from '../cli/runtime/project.mjs';
+
+test('encoded previews compare actual local videos without modifying the source player',async t=>{
+  const base=await mkdtemp(path.join(os.tmpdir(),'video-preview-page-'));
+  t.after(()=>rm(base,{recursive:true,force:true}));
+  const root=path.join(base,'project');
+  await createProject({out:root,duration:1},fileURLToPath(new URL('../templates/video',import.meta.url)));
+  const source=await readFile(path.join(root,'index.html'),'utf8');
+  const config=JSON.parse(await readFile(path.join(root,'project.json'),'utf8'));
+  config.title='A <b>title</b> & "quote"';await writeFile(path.join(root,'project.json'),JSON.stringify(config));
+  await mkdir(path.join(root,'output'),{recursive:true});
+  const input='output/clip #& 视频.mp4',compare='output/previous.mp4';
+  run('ffmpeg',['-v','error','-f','lavfi','-i','color=c=blue:s=64x36:r=10','-t','0.4','-c:v','libx264','-pix_fmt','yuv420p',path.join(root,input)]);
+  await copyFile(path.join(root,input),path.join(root,compare));
+  const prepared=await prepareVideoPreview(root,{input,compare});
+  const html=await readFile(prepared.local_file,'utf8');
+  assert.equal(prepared.videos.length,2);assert.equal(prepared.videos[0].width,64);
+  assert.ok(html.includes('A &lt;b&gt;title&lt;/b&gt; &amp; &quot;quote&quot;'));
+  assert.ok(html.includes('%23%26%20'));assert.ok(html.includes('play-together'));
+  assert.equal((await prepareVideoPreview(root,{input,compare})).reused,true);
+  assert.equal(await readFile(path.join(root,'index.html'),'utf8'),source);
+  await assert.rejects(()=>prepareVideoPreview(root,{input,out:'index.html'}),/not tool-managed/);
+  await assert.rejects(()=>prepareVideoPreview(root,{input:'../outside.mp4'}),/leaves project/);
+  const cli=spawnSync(process.execPath,[fileURLToPath(new URL('../cli/programmatic-video.mjs',import.meta.url)),'preview','--project',root,'--input',input,'--compare',compare,'--write-only'],{encoding:'utf8',windowsHide:true,timeout:10000});
+  assert.equal(cli.status,0,cli.stderr);assert.equal(JSON.parse(cli.stdout).served,false);
+});

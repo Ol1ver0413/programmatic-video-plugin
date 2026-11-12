@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
-import {mkdtemp,writeFile,rm,rmdir} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,rm,rmdir} from 'node:fs/promises';
 import {parseCaptions,clipCaptions} from '../cli/programmatic-video.mjs';
 import {checkCues,toSrt,validateProject} from '../cli/runtime/project.mjs';
+import {captionRowsAt,convertCaptions} from '../cli/api.mjs';
 
 test('source times move into the selected clip and crossing cues are cropped',()=>{
   const cues=clipCaptions([{start:38,end:39,text:'opening'},{start:47.54,end:49.02,text:'target'},{start:83,end:85,text:'ending'},{start:84,end:85,text:'excluded'}],38.88,45);
@@ -12,6 +13,52 @@ test('source times move into the selected clip and crossing cues are cropped',()
   assert.ok(Math.abs(cues[1].start-8.66)<1e-9);assert.ok(Math.abs(cues[1].end-10.14)<1e-9);
   assert.deepEqual(clipCaptions([{start:0,end:1,text:'before'},{start:2,end:3,text:'after'}],1,1),[]);
   assert.throws(()=>clipCaptions([],0,-1));
+});
+
+test('dialogue clipping preserves attribution and maps overlapping utterance times',()=>{
+  const original=[{start:10,end:14,text:'- First\n- Second',speaker:'b',speakers:['b','a'],note:{source:'authored'},utterances:[{speaker:'a',start:10,end:12.5},{speaker:'b',start:12,end:14}]}];
+  const snapshot=structuredClone(original),clipped=clipCaptions(original,11,2);
+  assert.deepEqual(clipped[0].speakers,['a','b']);
+  assert.equal(clipped[0].speaker,'b');
+  assert.deepEqual(clipped[0].utterances.map(({speaker,start,end})=>({speaker,start,end})),[{speaker:'a',start:0,end:1.5},{speaker:'b',start:1,end:2}]);
+  assert.deepEqual(clipped[0].note,{source:'authored'});
+  assert.deepEqual(original,snapshot);
+  const last=clipCaptions(original,13,1)[0];
+  assert.equal(last.text,'- Second');assert.equal(last.speaker,'b');
+  assert.equal(last.utterances.length,1);assert.deepEqual(last.speakers,['b']);
+});
+
+test('dialogue metadata rejects ambiguous rows and invalid nested times while allowing overlaps',()=>{
+  const cue={start:0,end:3,text:'one\ntwo',utterances:[{speaker:'a',start:0,end:2},{speaker:'b',start:1,end:3}]};
+  assert.deepEqual(checkCues([cue],3),[]);
+  assert.ok(checkCues([{...cue,text:'ambiguous'}],3).some(error=>/utterance/i.test(error)));
+  assert.ok(checkCues([{...cue,utterances:[{speaker:'a',start:0,end:4,text:'one'}]}],3).some(error=>/utterance/i.test(error)));
+  assert.ok(checkCues([{...cue,speaker:42}],3).length);
+});
+
+test('explicit utterance text and negative numbers survive while legacy dialogue markers are removed',()=>{
+  for(const text of ['-5 C','- hello']) {
+    const cue={start:0,end:2,text,utterances:[{speaker:'narrator',start:0,end:2,text}]};
+    assert.equal(captionRowsAt(cue,1)[0].text,text);
+    assert.equal(clipCaptions([cue],0,1)[0].utterances[0].text,text);
+  }
+  const cue={start:0,end:2,text:'- First\n-5 C',utterances:[{speaker:'a',start:0,end:1},{speaker:'b',start:1,end:2}]};
+  assert.deepEqual(captionRowsAt(cue,1.5).map(row=>row.text),['First','-5 C']);
+});
+
+test('caption conversion moves nested dialogue to the output time and renders actual speakers',async t=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'video-dialogue-'));
+  t.after(()=>rm(root,{recursive:true,force:true}));
+  const input=path.join(root,'input.json'),out=path.join(root,'clip.json'),map=path.join(root,'map.json');
+  await writeFile(input,JSON.stringify([{start:10,end:13,text:'a\nb',speaker:'b',speakers:['b','a'],utterances:[{speaker:'a',start:10,end:12},{speaker:'b',start:11.5,end:13}]}]));
+  await writeFile(map,JSON.stringify({source_start_seconds:11,source_end_seconds:13,output_start_seconds:4,output_end_seconds:6}));
+  await convertCaptions({input,out,map});
+  const [cue]=JSON.parse(await readFile(out,'utf8'));
+  assert.deepEqual([cue.start,cue.end],[4,6]);
+  assert.deepEqual(cue.utterances.map(row=>[row.start,row.end]),[[4,5],[4.5,6]]);
+  assert.deepEqual(captionRowsAt(cue,4.25).map(row=>[row.speaker,row.visible,row.active]),[['a',true,true],['b',false,false]]);
+  assert.deepEqual(captionRowsAt(cue,5.25).map(row=>[row.speaker,row.visible,row.active]),[['a',true,false],['b',true,true]]);
+  assert.deepEqual(captionRowsAt(cue,6),[]);
 });
 test('SRT preserves multiline text and rejects invalid or overlapping ranges',()=>{
   const input='\ufeff1\r\n00:00:01,250 --> 00:00:02,500\r\nfirst line\r\nsecond line\r\n\r\n2\r\n00:00:03,000 --> 00:00:04,000\r\nlast';

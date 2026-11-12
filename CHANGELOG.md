@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] - 2026-11-12
+
+- Track image requests, reference roles, original outputs and explicit adoption with a reusable assets CLI/API. Reuse identical files and retain existing source records.
+- Recover catalog locks left by interrupted operations after verifying the owner has exited; active operations keep their locks.
+- Preserve speaker metadata and overlapping utterance times when clipping or mapping captions; share timed caption-row helpers with scene code.
+- Preview encoded videos and compare versions through a stable, offline HTML page without replacing the source player.
+- Reuse named pose libraries, calibrated atlas drawing and deterministic state tracks across camera cuts.
+- Validate unfamiliar production methods in representative moving drafts before expanding assets; distinguish design candidates, production images and actual scene use.
+- Add asset lifecycle, caption, preview and pose regressions, including browser playback and shared runtime checks.
+
 ## [0.1.0] - 2026-11-10
 
 First public release of Programmatic Video.

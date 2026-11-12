@@ -61,6 +61,48 @@ programmatic-video render --project "<project>" --incremental --profile final
 
 工程修改期间停止输出正式版本，完成后再渲染。工具检测源变化并保护旧成片；未知依赖不能假装局部缓存安全。source.dependencies 可声明src/tools之外的助手文件，纳入校验和快照。
 
+## 生图请求与资产采用
+
+反复生图、补图或跟踪采用关系时，先准备一次请求；下面的 JSON 是操作输入，可放临时目录或 stdin，不是另一份工程配置：
+
+```json
+{
+  "id": "guest-open-v1",
+  "asset": "guestOpen",
+  "kind": "production",
+  "purpose": "A new gesture in the conversation scene",
+  "prompt": "The complete requested figure, using the approved visual style...",
+  "references": [{"file": "assets/style.png", "role": "Style only; preserve the requested subject"}],
+  "minimum": {"width": 768, "height": 768},
+  "scenes": ["conversation"]
+}
+```
+
+id 是本次请求版本，asset 是拟登记的稳定工程键；kind 可为 reference/candidate/production。purpose、prompt、references、minimum 和 scenes 均可按需省略，引用图必须给 file 与 role。minimum 检查整图像素，不能证明单格/特写质量；按实际需求填写，不固定通用阈值。
+
+```sh
+programmatic-video assets --project "<project>" --prepare request.json
+# 使用宿主工具生成，或准备已有图片；将真实返回文件导入。
+programmatic-video assets --project "<project>" --job guest-open-v1 --import "/actual/generated-image.png"
+programmatic-video assets --project "<project>" --job guest-open-v1
+# 看过内容、实际裁区与尺寸；需要时先用 atlas 校准。
+programmatic-video assets --project "<project>" --job guest-open-v1 --adopt
+programmatic-video assets --project "<project>"
+```
+
+CLI 不调用生图模型。prepare 保存 prompt、参考用途和哈希；相同请求可重试，修改输入使用新 id。import 保留原图片字节，登记尺寸、哈希和来源，重复文件复用；参考在准备后改变会拒绝导入。adopt 显式更新 project.assets，低于已声明 minimum 的候选不能采用。记录沿用 assets/sources.json，原有数组/对象来源资料保留。declared_scenes 是 scene.assets 的声明，不是抽帧观测，也不自动接入场景动画。图片、姿态或镜头是否合格仍由 agent/reviewer 判断。
+
+requested 只表示请求已准备，不是模型执行状态；重复生成前先检查宿主仍在运行的调用和已有文件，返回后及时 import。资产管理由同一制作 agent 协调；写入互斥。进程被终止留下锁时，串行执行 assets --project "<project>" --recover-lock，只恢复可核实为同机且拥有者已退出的锁；活动锁、身份不明或其他机器的锁会拒绝清除，不并行恢复。
+
+## 编码预览与版本对比
+
+```sh
+programmatic-video preview --project "<project>" --input output/video.mp4 --write-only
+programmatic-video preview --project "<project>" --input output/previews/current.mp4 --compare output/previews/previous.mp4 --write-only
+```
+
+稳定 HTML 默认为 output/previews/viewer.html，可加 --out 指定其他 HTML 路径。页面直接引用真实视频，可离线打开和下载；已存在的非工具页面不会被覆盖。不加 --write-only 则启动本地服务；源码预览仍用无 --input 的原命令。比较按钮从各自片段0秒播放，不自动对齐不同起点的片内时间，也不替代音画验证。项目标题和文件名经过转义，输入与输出限制在本工程内。
+
 ## 图集批量准备
 
 ```sh
@@ -92,6 +134,10 @@ const camera = cameraAt(local, scene.params.camera, { width, height });
 ```
 
 动作准备/接触/恢复的时长仍由创作决定。人物、道具、背景和接触点共用镜头坐标；cameraPoint可将挂点转换到屏幕或反向定位。withCamera的viewport可附depth做分层视差。持续在场的角色可改变站位、景别和参与方式；是否必须全程可见按本片要求，不固定在左侧角落。
+
+跨镜姿态可用 stateAt(time, [[0, "idle"], [1.2, "reach"]])；用片内时间采样，切镜仍延续同一表演。createPoseLibrary(images, {poses}, metadata) 复用已加载图像和 atlas：每个命名姿态用 {asset, atlas, frame}，metadata 是以 atlas 路径为键的对象或 Map；单独区域也可给 {asset, region, anchor, reference_height}，共同 reference_height 可放在描述顶层。drawPose(ctx, library, name, transform) 沿用 drawSprite 的位置、身高、翻转与旋转。参考高度必须明确，不固定为某个项目的数值；人物、道具或完整交互图都可使用。
+
+captionRowsAt(cue, time) 返回实际 speaker、文本和 visible/active，适用于画外发言与交错台词；支持 utterances 的独立 text，或与 cue.text 按行对应的旧格式。captions 裁切会保留元信息、裁切并移时子发言；移出范围的子发言不保留。--text 不重新分配重叠发言，纠正这类文字需提供明确的 timed JSON。它不识别音色、不转写，也不证明逐字听校通过。
 
 ## 共享取帧证据
 

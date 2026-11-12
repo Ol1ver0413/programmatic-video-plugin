@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>__TITLE__</title>
+  <style>
+    :root { color-scheme: light dark; --surface: #fff; --text: #24292f; --muted: #636c76; --line: #d0d7de; }
+    @media (prefers-color-scheme: dark) { :root { --surface: #0d1117; --text: #e6edf3; --muted: #9da7b3; --line: #30363d; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 36px 24px; background: var(--surface); color: var(--text); font: 16px/1.6 system-ui, sans-serif; }
+    main { max-width: 1200px; margin: auto; }
+    h1 { margin: 0 0 10px; font-size: 26px; font-weight: 600; }
+    h2 { margin: 0 0 12px; font-size: 16px; font-weight: 500; color: var(--muted); }
+    .videos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 28px; margin-top: 28px; }
+    section { min-width: 0; padding-top: 18px; border-top: 1px solid var(--line); }
+    video { display: block; width: 100%; max-height: 72vh; background: #000; border-radius: 6px; }
+    .metadata { color: var(--muted); font-size: 13px; }
+    a { color: inherit; text-underline-offset: 3px; overflow-wrap: anywhere; }
+    button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+    :focus-visible { outline: 2px solid #8250df; outline-offset: 4px; }
+    #play-status { font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>__TITLE__</h1>
+    __COMPARE__
+    <p id="play-status" role="status"></p>
+    <div class="videos">__VIDEOS__</div>
+  </main>
+  <script>
+    document.getElementById('play-together')?.addEventListener('click', async () => {
+      const videos = [...document.querySelectorAll('video')];
+      videos.forEach(video => { video.pause(); video.currentTime = 0; });
+      try {
+        await Promise.all(videos.map(video => video.play()));
+        document.getElementById('play-status').textContent = 'Playing both from clip time 0. Comparison audio is muted.';
+      } catch {
+        document.getElementById('play-status').textContent = 'Use the video controls to start playback.';
+      }
+    });
+  </script>
+</body>
+</html>

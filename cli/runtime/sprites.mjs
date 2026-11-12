@@ -144,6 +144,66 @@ export function frameAt(time, keys) {
   return keys.reduce((frame, [at, value]) => (time >= at ? value : frame), keys[0][1]);
 }
 
+// Use project time for performances that continue across camera cuts.
+export function stateAt(time, keys) {
+  if (
+    !Number.isFinite(time) ||
+    !Array.isArray(keys) ||
+    !keys.length ||
+    keys.some(
+      (key, index) =>
+        !Array.isArray(key) ||
+        key.length !== 2 ||
+        !Number.isFinite(key[0]) ||
+        (typeof key[1] !== 'string' && !Number.isFinite(key[1])) ||
+        key[1] === '' ||
+        (index && key[0] <= keys[index - 1][0]),
+    )
+  )
+    throw new Error('State keys need increasing finite times and named or numeric values');
+  return keys.reduce((value, [at, next]) => (time >= at ? next : value), keys[0][1]);
+}
+
+export function createPoseLibrary(images, description, metadata = {}) {
+  if (
+    !description?.poses ||
+    typeof description.poses !== 'object' ||
+    Array.isArray(description.poses)
+  )
+    throw new Error('A pose library needs named poses');
+  const poses = new Map();
+  for (const [name, pose] of Object.entries(description.poses)) {
+    const image = images?.[pose?.asset];
+    if (!image) throw new Error(`Pose ${name} refers to an unavailable image`);
+    const details = pose.atlas
+      ? metadata instanceof Map
+        ? metadata.get(pose.atlas)
+        : metadata[pose.atlas]
+      : {
+          schema_version: 1,
+          width: image.width,
+          height: image.height,
+          reference_height: pose.reference_height ?? description.reference_height,
+          frames: [
+            { region: pose.region, anchor: pose.anchor, anchors: pose.anchors ?? {}, empty: false },
+          ],
+        };
+    if (!details) throw new Error(`Pose ${name} needs its declared atlas metadata`);
+    const atlas = createAtlas(image, details),
+      frame = pose.frame ?? 0;
+    if (!Number.isInteger(frame) || !atlas.metadata.frames[frame])
+      throw new Error(`Pose ${name} refers to an unknown frame`);
+    poses.set(name, { atlas, frame });
+  }
+  return poses;
+}
+
+export function drawPose(ctx, library, name, options) {
+  const pose = library.get(name);
+  if (!pose) throw new Error(`Unknown pose: ${name}`);
+  return drawSprite(ctx, pose.atlas, pose.frame, options);
+}
+
 export function valueAt(time, keys, easing = (t) => t) {
   if (
     !Number.isFinite(time) ||

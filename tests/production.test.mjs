@@ -13,8 +13,24 @@ import { inspectPixels } from '../cli/lib/atlas.mjs';
 import { packAtlasPixels } from '../cli/lib/atlas-pack.mjs';
 import { sceneClock, eventAge, actionAt, cameraAt, cameraPoint, withCamera } from '../cli/runtime/animation.mjs';
 import { renderSpec } from '../cli/runtime/render-spec.mjs';
+import { stateAt, createPoseLibrary, drawPose } from '../cli/api.mjs';
 import { cutAudio } from '../cli/lib/media.mjs';
 import { run } from '../cli/runtime/project.mjs';
+
+test('named performances retain their state across cuts and share calibrated pose drawing',()=>{
+  const image={width:32,height:16},metadata={schema_version:1,width:32,height:16,reference_height:16,frames:[{region:[0,0,16,16],anchor:[8,15]},{region:[16,0,16,16],anchor:[24,15]}]};
+  const library=createPoseLibrary({actor:image},{poses:{idle:{asset:'actor',atlas:'poses',frame:0},point:{asset:'actor',atlas:'poses',frame:1}}},{poses:metadata});
+  const track=[[0,'idle'],[1,'point'],[2,'idle']];
+  assert.equal(stateAt(1,track),'point');assert.equal(stateAt(1.8,track),'point');
+  assert.equal(stateAt(2,track),'idle');
+  const draws=[],ctx={save(){},restore(){},translate(){},rotate(){},scale(){},globalAlpha:1,drawImage(...args){draws.push(args);}};
+  const placement=drawPose(ctx,library,stateAt(1.8,track),{x:100,y:90,height:32});
+  assert.equal(draws[0][1],16);assert.equal(placement.scale,2);
+  assert.deepEqual(placement.point([24,15]),{x:100,y:90});
+  assert.throws(()=>stateAt(1,[[0,'a'],[0,'b']]),/increasing/);
+  assert.throws(()=>createPoseLibrary({actor:image},{poses:{bad:{asset:'actor',region:[0,0,16,16],anchor:[8,15]}}}),/reference_height/);
+  assert.throws(()=>drawPose(ctx,library,'missing',{}),/Unknown pose/);
+});
 import { createAtlas } from '../cli/runtime/sprites.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
