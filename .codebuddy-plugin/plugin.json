@@ -1,6 +1,6 @@
 {
   "name": "programmatic-video",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Agent-led video creation: brainstorm, plan, build moving drafts, review and learn.",
   "author": {
     "name": "Ol1ver0413"
@@ -8,5 +8,10 @@
   "homepage": "https://github.com/Ol1ver0413/programmatic-video-plugin",
   "repository": "https://github.com/Ol1ver0413/programmatic-video-plugin",
   "license": "MIT",
-  "keywords": ["video", "animation", "storyboard", "programmatic-video"]
+  "keywords": [
+    "video",
+    "animation",
+    "storyboard",
+    "programmatic-video"
+  ]
 }

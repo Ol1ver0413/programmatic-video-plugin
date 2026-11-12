@@ -17,6 +17,8 @@ import { inspectProject } from './lib/project-edit.mjs';
 import { reviewVideo } from './lib/review.mjs';
 import { renderProject } from './runtime/render-core.mjs';
 import { renderIncremental } from './runtime/render-incremental.mjs';
+import { manageAssets } from './lib/assets.mjs';
+import { prepareVideoPreview } from './lib/preview.mjs';
 
 export { parseCaptions, clipCaptions } from './lib/media.mjs';
 
@@ -32,7 +34,7 @@ const help = `programmatic-video — editable video projects, media tools and pe
   review --project DIR --input VIDEO [--report REPORT.json] [--scene ID | --start SECONDS --duration SECONDS] [--out output/qa/DIR]
   review --project DIR --task output/qa/DIR/review-task.json [--result output/qa/DIR/observations.json]
   checkpoint --project DIR --stage STAGE --note TEXT
-  preview --project DIR [--port NUMBER]
+  preview --project DIR [--port NUMBER] [--input VIDEO [--compare VIDEO --out PAGE.html --write-only]]
   render --project DIR [--stills | --no-stills] [--scene ID | --start SECONDS --duration SECONDS] [--out FILE.mp4] [--profile draft|final] [--cache | --incremental]
   frames --project DIR [--scene ID --samples NUMBER | --times 0.1,0.4,0.8] [--input FILE.mp4 [--map REPORT.json | --report EXPORT.json]] [--out DIR --resume] [--cache] [--width PIXELS]
   finish --project DIR --input REVIEW.json [--memory-dir DIR]
@@ -43,6 +45,8 @@ const help = `programmatic-video — editable video projects, media tools and pe
   audio --mode locate|verify --input FILE --reference FILE --out REPORT.json [--windows SECONDS,... --duration SECONDS] [--sample-rate NUMBER]
   atlas --project DIR --input IMAGE [--columns NUMBER --rows NUMBER | --layout LAYOUT.json] [--alpha-threshold NUMBER] [--out REPORT.json] [--pack IMAGE.png --padding NUMBER] [--register ASSET_ID]
   atlas --project DIR --batch ITEMS.json|- [--resume]
+  assets --project DIR [--prepare REQUEST.json|- | --job ID [--import IMAGE | --adopt]]
+  assets --project DIR --recover-lock
   captions --input FILE.srt|json|lrc --out FILE.json [--offset SECONDS --duration SECONDS | --map REPORT.json] [--text USER.txt]
   validate --project DIR [--playback]
   validate --project DIR --input FILE.mp4 [--map REPORT.json | --report EXPORT.json] [--reference-audio FILE --min-correlation NUMBER] [--captions-file FILE --reference-captions FILE] [--out REPORT.json]
@@ -77,10 +81,27 @@ async function preview(values) {
     port = values.port === undefined ? 4173 : number(values.port, 'port');
   if (!Number.isInteger(port) || port < 0 || port > 65535)
     throw new Error('port must be an integer from 0 to 65535');
-  await checkAndWrite(root);
+  if (!values.input && ['compare', 'out', 'write-only'].some((key) => values[key] !== undefined))
+    throw new Error('Encoded preview options require --input VIDEO');
+  const page = values.input ? await prepareVideoPreview(root, values) : null;
+  if (values['write-only']) return { ...page, served: false };
+  if (!page) await checkAndWrite(root);
   const { startServer } = await import(pathToFileURL(path.join(root, 'tools/server.mjs')).href);
   const { server, url } = await startServer(port);
-  console.log(url);
+  if (page)
+    console.log(
+      JSON.stringify(
+        {
+          ...page,
+          url: url + '/' + page.file.split('/').map(encodeURIComponent).join('/'),
+          pid: process.pid,
+          served: true,
+        },
+        null,
+        2,
+      ),
+    );
+  else console.log(url);
   process.once('SIGINT', () => server.close());
   process.once('SIGTERM', () => server.close());
 }
@@ -168,6 +189,11 @@ const commands = {
     project: true,
     run: (values) => processAtlas(projectRoot(values), values),
   },
+  assets: {
+    options: ['project', 'prepare', 'job', 'import', 'adopt', 'recover-lock'],
+    project: true,
+    run: (values) => manageAssets(projectRoot(values), values),
+  },
   captions: {
     options: ['input', 'out', 'offset', 'duration', 'map', 'text'],
     run: convertCaptions,
@@ -226,7 +252,11 @@ const commands = {
     project: true,
     run: (values) => checkpoint(projectRoot(values), values.stage, values.note),
   },
-  preview: { options: ['project', 'port'], project: true, run: preview },
+  preview: {
+    options: ['project', 'port', 'input', 'compare', 'out', 'write-only'],
+    project: true,
+    run: preview,
+  },
   render: {
     options: [
       'project',
@@ -300,6 +330,9 @@ export async function main(argv = process.argv.slice(2)) {
     'files',
     'cache',
     'incremental',
+    'adopt',
+    'write-only',
+    'recover-lock',
     'help',
     'version',
   ]);

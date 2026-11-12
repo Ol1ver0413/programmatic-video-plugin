@@ -25,6 +25,11 @@ async function packagedFiles(directory, prefix = '') {
 }
 try {
   checkPackage(await packagedFiles(root));
+  for(const name of ['README.md','README.zh-CN.md']) {
+    const markdown=await readFile(path.join(root,name),'utf8');
+    const targets=[...markdown.matchAll(/\]\(([^)]+)\)/g),...markdown.matchAll(/(?:src|srcset)="([^"]+)"/g)].map(match=>match[1]).filter(target=>!/^https?:|^#/.test(target));
+    for(const target of new Set(targets))await stat(path.resolve(root,target.split('#')[0]));
+  }
   const version = run('bin/programmatic-video', ['--version']);
   assert.equal(version.status, 0, version.stderr);
   assert.equal(version.stdout.trim(), expected);
@@ -58,12 +63,15 @@ try {
   await stat(path.join(root, 'hooks/hooks.json'));
   await stat(path.join(root, 'docs/workbuddy.md'));
   await stat(path.join(root, 'skills/producing-video/references/asset-reuse.md'));
+  await stat(path.join(root, 'templates/preview.html'));
   await stat(path.join(project, 'tools/manifest.mjs'));
   await stat(path.join(project, 'tools/animation.mjs'));
   await stat(path.join(project, 'tools/render-core.mjs'));
   const apiPath = createRequire(path.join(root, 'package.json')).resolve('programmatic-video-plugin');
   const api = await import(pathToFileURL(apiPath));
-  for (const name of ['applyProjectPatch', 'renderProject', 'renderIncremental', 'prepareAtlases', 'cameraAt', 'collectFrames']) assert.equal(typeof api[name], 'function');
+  for (const name of ['applyProjectPatch', 'renderProject', 'renderIncremental', 'prepareAtlases', 'cameraAt', 'collectFrames', 'prepareAsset','importAsset','adoptAsset','listAssets','recoverAssetLock','prepareVideoPreview','captionRowsAt','stateAt','createPoseLibrary','drawPose']) assert.equal(typeof api[name], 'function');
+  assert.equal((await api.prepareAsset(project,{id:'packaged-image',purpose:'Packaged image request'})).status,'requested');
+  assert.equal((await api.listAssets(project)).jobs.length,1);
   assert.equal(run('cli/programmatic-video.mjs', ['project', '--project', project, '--time', '0.1']).status, 0);
   console.log(JSON.stringify({ archive_version: expected, canonical_and_legacy_entries: true, public_api: true, unrelated_cwd: true, standalone_project_runtime: true, packaged_ignore_rules: true, session_hook: true, codebuddy_distribution: true, optional_audio_helper: true }));
 } finally {

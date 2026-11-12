@@ -1,4 +1,5 @@
 import { checkCues, parseJson } from '../runtime/project.mjs';
+import { captionUtterances, shiftCaptions } from '../runtime/captions.mjs';
 
 function parseLrc(text, end) {
   if (!Number.isFinite(end) || end <= 0)
@@ -65,13 +66,42 @@ export function parseCaptions(text, format, { end } = {}) {
 export function clipCaptions(cues, offset, duration) {
   if (!Number.isFinite(offset) || offset < 0 || !Number.isFinite(duration) || duration <= 0)
     throw new Error('offset must be nonnegative and duration positive');
-  return cues
+  const clipped = cues
     .filter((cue) => cue.end > offset && cue.start < offset + duration)
-    .map((cue) => ({
-      start: Math.max(0, cue.start - offset),
-      end: Math.min(duration, cue.end - offset),
-      text: cue.text,
-    }));
+    .flatMap((cue) => {
+      const next = structuredClone(cue);
+      const rows = captionUtterances(cue);
+      if (rows.length) {
+        const lines = cue.text.split(/\r?\n/);
+        const selected = rows
+          .map((row, index) => ({
+            row,
+            line: lines.length === rows.length ? lines[index] : row.text,
+          }))
+          .filter(({ row }) => row.end > offset && row.start < offset + duration);
+        if (!selected.length) return [];
+        next.utterances = selected.map(({ row }) => row);
+        next.speakers = [...new Set(next.utterances.map((row) => row.speaker))];
+        if (!next.speakers.includes(next.speaker)) next.speaker = next.speakers[0];
+        if (selected.length !== rows.length)
+          next.text = selected.map(({ line }) => line).join('\n');
+      }
+      return [next];
+    });
+  return shiftCaptions(clipped, -offset).map((cue) => ({
+    ...cue,
+    start: Math.max(0, cue.start),
+    end: Math.min(duration, cue.end),
+    ...(cue.utterances
+      ? {
+          utterances: cue.utterances.map((row) => ({
+            ...row,
+            start: Math.max(0, row.start),
+            end: Math.min(duration, row.end),
+          })),
+        }
+      : {}),
+  }));
 }
 
 export function alignCaptionText(cues, text) {
@@ -95,6 +125,10 @@ export function alignCaptionText(cues, text) {
     const index = lines.findIndex((line, i) => i >= cursor && normalize(line) === key);
     if (!key || index < 0) unmatched.push({ start: cue.start, end: cue.end, text: cue.text });
     else {
+      if (cue.utterances?.length)
+        throw new Error(
+          'Use corrected timed JSON for utterance text; plain text cannot assign overlapping speech',
+        );
       matched.push({ ...cue, text: lines[index] });
       cursor = index + 1;
       used.add(index);

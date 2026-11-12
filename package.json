@@ -1,6 +1,6 @@
 {
   "name": "programmatic-video-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "license": "MIT",
   "description": "Agent skills and local tools for editable, code-driven videos.",
@@ -38,11 +38,12 @@
     "docs/getting-started.md",
     "docs/workbuddy.md",
     "docs/releasing.md",
-    "docs/production-lessons.md"
+    "docs/production-lessons.md",
+    "docs/images/"
   ],
   "scripts": {
     "lint": "eslint \"{bin,cli,hooks,scripts,templates,tests}/**/*.{mjs,js}\" bin/programmatic-video bin/pixel-video eslint.config.mjs --max-warnings 0",
-    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs tests/reuse.test.mjs tests/layout.test.mjs tests/pipeline.test.mjs tests/description.test.mjs tests/production.test.mjs tests/release.test.mjs",
+    "test": "node --test tests/toolkit.test.mjs tests/workflow.test.mjs tests/hooks.test.mjs tests/render.test.mjs tests/sampling.test.mjs tests/reuse.test.mjs tests/layout.test.mjs tests/pipeline.test.mjs tests/description.test.mjs tests/production.test.mjs tests/release.test.mjs tests/assets.test.mjs tests/preview-page.test.mjs",
     "test:package": "node scripts/check-package.mjs",
     "test:media": "node tests/production-smoke.mjs",
     "release:version": "node scripts/version.mjs set",

@@ -5,7 +5,9 @@ import os from 'node:os';
 import { mkdtemp, readFile, writeFile, symlink, rm, readdir } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createProject } from '../cli/lib/project-init.mjs';
-import { renderProject, renderIncremental, applyProjectPatch, collectFrames, inspectAtlas, prepareAtlases, validateMedia } from '../cli/api.mjs';
+import { renderProject, renderIncremental, applyProjectPatch, collectFrames, inspectAtlas, prepareAtlases, validateMedia, prepareVideoPreview } from '../cli/api.mjs';
+import { openBrowser } from '../cli/runtime/browser.mjs';
+import { startServer } from '../cli/runtime/server.mjs';
 import { encodeAtlasPng } from '../cli/lib/atlas-pack.mjs';
 import { probe, run } from '../cli/runtime/project.mjs';
 import { fileHash } from '../cli/lib/files.mjs';
@@ -106,6 +108,28 @@ try {
   const batchItems = [{ input: 'sprite.png', columns: '2', rows: '1', out: 'assets/batch-atlas.json', register: 'batchSprite' }];
   assert.equal((await prepareAtlases(root, batchItems)).prepared, 1);
   assert.equal((await prepareAtlases(root, batchItems, { resume: true })).reused, 1);
+  const preview=await prepareVideoPreview(root,{input:full.file,compare:draft.file});
+  const previewServer=await startServer(0,root),previewBrowser=await openBrowser(root);
+  try {
+    const page=await previewBrowser.newPage({viewport:{width:1100,height:850}}),errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(previewServer.url+'/'+preview.file);
+    await page.waitForFunction(()=>[...document.querySelectorAll('video')].every(video=>video.readyState>=2));
+    assert.deepEqual(await page.locator('video').evaluateAll(videos=>videos.map(video=>video.videoWidth)),[1280,960]);
+    await page.click('#play-together');
+    await page.waitForFunction(()=>[...document.querySelectorAll('video')].every(video=>video.currentTime>.1));
+    const poseResult=await page.evaluate(async()=>{
+      const {createPoseLibrary,drawPose,stateAt}=await import('/tools/sprites.mjs');
+      const image=new Image();image.src='/assets/packed.png';await image.decode();
+      const metadata=await fetch('/assets/packed-atlas.json').then(response=>response.json());
+      const library=createPoseLibrary({actor:image},{poses:{idle:{asset:'actor',atlas:'main',frame:0},next:{asset:'actor',atlas:'main',frame:1}}},{main:metadata});
+      const canvas=document.createElement('canvas');canvas.width=100;canvas.height=100;const ctx=canvas.getContext('2d');
+      drawPose(ctx,library,stateAt(1.5,[[0,'idle'],[1,'next']]),{x:50,y:80,height:40});
+      return [...ctx.getImageData(0,0,100,100).data].some((value,index)=>index%4===3&&value>0);
+    });
+    assert.equal(poseResult,true);assert.deepEqual(errors,[]);
+    if(process.env.PROGRAMMATIC_VIDEO_PREVIEW_SCREENSHOT)await page.screenshot({path:path.resolve(process.env.PROGRAMMATIC_VIDEO_PREVIEW_SCREENSHOT),fullPage:true});
+  } finally {await previewBrowser.close();await new Promise(resolve=>previewServer.server.close(resolve));}
   const blobs = await readdir(path.join(root, 'output/qa/.frames'));
   console.log(JSON.stringify({ passed: true, realCameraAndDraft: true, nativeCapture: fullReport.capture_size, finalSize: [fullReport.width, fullReport.height], unchangedSourceDuringDraft: true, exactRenderReuse: warm.captured_frames, incrementalColdFrames: cold.captured_frames, incrementalEditedFrames: edited.captured_frames, sharedCodeInvalidatesAll: shared.rendered_scenes.length, captionEditScenes: textEdit.rendered_scenes, audioEditCapturedFrames: audioEdit.captured_frames, sharedFrameReuse: b.reused_frames, frameBlobs: blobs.length, corruptedFrameRepaired: true, atlasPackedAndRegistered: true, observedSeconds: { full: full.timings.total_seconds, warm: warm.timings.total_seconds, draft: draft.timings.total_seconds } }));
 } finally {

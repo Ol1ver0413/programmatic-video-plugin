@@ -5,6 +5,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { run, probe } from '../runtime/project.mjs';
 import { saveJson, readJson, fileHash } from './files.mjs';
 import { timeMapping, readTimeMapping } from '../runtime/timing.mjs';
+import { shiftCaptions } from '../runtime/captions.mjs';
 import { parseCaptions, clipCaptions, alignCaptionText } from './captions.mjs';
 export { parseCaptions, clipCaptions } from './captions.mjs';
 export const number = (value, name) => {
@@ -99,17 +100,16 @@ export async function convertCaptions(values) {
         number(values.offset ?? '0', 'offset'),
         number(values.offset ?? '0', 'offset') + number(values.duration, 'duration'),
       );
-  let cues = clipCaptions(
-    parseCaptions(await readFile(input, 'utf8'), path.extname(input).toLowerCase(), {
-      end: mapping.source_end_seconds,
-    }),
-    mapping.source_start_seconds,
-    mapping.source_end_seconds - mapping.source_start_seconds,
-  ).map((cue) => ({
-    ...cue,
-    start: cue.start + mapping.output_start_seconds,
-    end: cue.end + mapping.output_start_seconds,
-  }));
+  let cues = shiftCaptions(
+    clipCaptions(
+      parseCaptions(await readFile(input, 'utf8'), path.extname(input).toLowerCase(), {
+        end: mapping.source_end_seconds,
+      }),
+      mapping.source_start_seconds,
+      mapping.source_end_seconds - mapping.source_start_seconds,
+    ),
+    mapping.output_start_seconds,
+  );
   let alignment;
   if (values.text) {
     alignment = alignCaptionText(cues, await readFile(path.resolve(values.text), 'utf8'));

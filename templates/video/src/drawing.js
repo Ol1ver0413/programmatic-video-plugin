@@ -1,4 +1,13 @@
-export { createAtlas, drawSprite, frameAt, valueAt } from '../tools/sprites.mjs';
+export {
+  createAtlas,
+  drawSprite,
+  frameAt,
+  valueAt,
+  stateAt,
+  createPoseLibrary,
+  drawPose,
+} from '../tools/sprites.mjs';
+export { captionRowsAt } from '../tools/captions.mjs';
 export {
   sceneClock,
   eventAge,

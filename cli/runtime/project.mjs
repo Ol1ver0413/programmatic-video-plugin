@@ -2,6 +2,7 @@ import path from 'node:path';
 import { readFile, realpath, stat, writeFile, mkdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { checkProjectLinks } from './project-links.mjs';
+import { captionUtterances } from './captions.mjs';
 
 export function parseJson(text) {
   return JSON.parse(text.replace(/^\uFEFF/, ''));
@@ -92,6 +93,11 @@ export function checkCues(cues, duration) {
     }
     if (typeof cue?.text !== 'string' || !cue.text.trim())
       errors.push(`Caption ${i + 1}: missing text`);
+    try {
+      captionUtterances(cue);
+    } catch (error) {
+      errors.push(`Caption ${i + 1}: ${error.message}`);
+    }
   });
   return errors;
 }

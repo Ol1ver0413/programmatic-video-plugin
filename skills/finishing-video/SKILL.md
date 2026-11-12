@@ -36,6 +36,8 @@ draft只作预演；正式交付使用final规格。检查实际render_spec与�
 
 style 是实际风格案例，不代表长期喜好。反馈写用户真实表达；lessons 写经过实践的经验，保留“哪项决定→观察到什么→下次适用条件”，不要只堆完成事项。后续反馈到来时沿用本工程补充，不把最初的“尚无反馈”当成永久结论。关键事件理解错误、动作演出不足、素材不合格与导出问题分开记录，便于下次知道该改哪一层。
 
+用户接受或提出修改时，及时用 checkpoint 记录原话、对应产物路径/版本和仍未验证的项目，不留到下一次恢复再猜。feedback 与 lessons 当前各为字符串数组，可将“决定→观察→适用条件”写在一条字符串内。若完整审片仍有未验证项，先保存真实反馈和待补复盘，保留 review 状态；不要删 reviewTask 或改成全部通过来绕过 finish。
+
 ```sh
 programmatic-video finish --project "<project>" --input "<project>/output/qa/review-input.json"
 ```

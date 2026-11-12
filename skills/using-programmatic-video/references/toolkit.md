@@ -20,9 +20,10 @@ Node.js 20+，从源码执行 `npm install --global .` 安装 `programmatic-vide
 | audio | 按 --start、--duration 裁切音频到 --out WAV |
 | audio --mode locate / verify | 估计参考片段在音源的位置，或比较编码与参考音轨；默认裁切方式保持兼容 |
 | atlas | 分析/打包图集、登记素材；--batch/--resume复用批量准备 |
+| assets | 准备图像请求、导入真实原图、显式采用并查询来源；中断锁可用 --recover-lock 恢复 |
 | captions | SRT/JSON/LRC 按 --offset、--duration 或 --map 转为字幕 JSON |
 | validate | 工程检查；--playback 检查源播放器；--input 检查编码媒体及可选音轨/字幕回归 |
-| preview | 启动预览服务，可用 --port；音频或独立时钟驱动播放 |
+| preview | 源码预览；--input/--compare 呈现编码版本，--write-only 生成离线页面 |
 | render | 完整导出、镜头样帧或指定时间范围的动态小样 |
 | frames | 按镜头/时刻取帧及分页总览；--map 沿用项目时间，--resume 恢复同一份证据 |
 | finish | 保存交付小结、实际风格与明确偏好，最后标记完成 |
