@@ -12,10 +12,7 @@
 
 ## 怎么工作
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/production-workflow.zh-CN.dark.svg">
-  <img alt="插件完整闭环：脑暴、脚本与计划，主 agent 围绕 project.json 调用 CLI/API 制作，审片反馈后修改、交付；开发时再分析 trace、测试可复用能力，用于下一次任务。" src="docs/images/production-workflow.zh-CN.svg">
-</picture>
+![创作与工具迭代闭环：脑暴、脚本与计划，围绕 project.json 制作动态小样、审片和交付；再从 trace 提取并测试可复用工具。](docs/images/production-workflow.zh-CN.svg)
 
 Agent 写内容脚本，维护一份 `project.json`，调用 CLI/API 准备素材、制作动态小样并导出视频。需要时由一个 reviewer 协助检查，再根据反馈修改同一份工程。
 
